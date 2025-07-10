@@ -1,6 +1,6 @@
 {
-    "name": "lunch_game_app",
-    "short_name": "lunch_game_app",
+    "name": "LaunchLunch",
+    "short_name": "LaunchLunch",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

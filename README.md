@@ -1,4 +1,4 @@
-# lunch_game_app
+# LaunchLunch
 
 A new Flutter project.
 
