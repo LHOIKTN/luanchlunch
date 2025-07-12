@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_keys.dart';
 
-Future<void> initSupabase() async {
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-}
+late final SupabaseClient supabase;
 
-final supabase = Supabase.instance.client;
+Future<void> initSupabase() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  supabase = Supabase.instance.client;
+}

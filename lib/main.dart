@@ -4,11 +4,12 @@ import 'package:hive/hive.dart';
 import 'package:launchlunch/models/daily_data.dart';
 import 'package:launchlunch/models/ingredient.dart';
 import 'package:launchlunch/data/supabase/api_service.dart';
+import 'package:launchlunch/data/supabase/supabase_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initHive();
-
+  await initSupabase();
   final api = SupabaseApi();
   final menus = await api.getMenusByDate('2025-07-11');
   print('------------');

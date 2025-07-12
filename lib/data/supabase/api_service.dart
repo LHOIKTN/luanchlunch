@@ -1,19 +1,31 @@
 import 'supabase_client.dart';
 
 class SupabaseApi {
-  /// 오늘 날짜의 메뉴 UUID들 가져오기
-  Future<List<Object>> getMenusByDate(String date) async {
+  /// 오늘 날짜의 메뉴,재료 가져오기
+  Future<Map<String, dynamic>> getMenusByDate(String date) async {
     final response = await supabase
         .from('meals')
-        .select('*')
+        .select('*, menus(name, foods(*))')
         .eq('meal_date', date);
 
-    if (response is List) {
-      final result = response;
-      print(result);
-      return result;
+    final menus = <String>[];
+    final foodSet = <int, Map<String, dynamic>>{};
+
+    for (final item in response) {
+      final menu = item['menus'];
+      if (menu == null) continue;
+
+      if (menu['name'] != null) {
+        menus.add(menu['name']);
+      }
+
+      final food = menu['foods'];
+      if (food != null && food['id'] != null) {
+        foodSet[food['id']] = food;
+      }
     }
-    return [];
+
+    return {'meal_date': date, "menus": menus, 'food': foodSet.values.toList()};
   }
 
   //   /// 메뉴 UUID를 기반으로 메뉴명, 재료 UUID 가져오기
