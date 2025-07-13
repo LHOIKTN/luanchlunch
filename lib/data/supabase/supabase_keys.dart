@@ -1,3 +1,4 @@
-const String supabaseUrl = "https://tcszpiaymqtftcbaydwy.supabase.co";
-const String supabaseAnonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjc3pwaWF5bXF0ZnRjYmF5ZHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MzU3NDAsImV4cCI6MjA2NzUxMTc0MH0.6winz3E-FIw5mZAZdelwDwL1ZLiwFeWzb_nMkRnqSnI';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final supabaseUrl = dotenv.env['SUPABASE_URL'];
+final supabaseAnonKey = dotenv.env['SUPABASE_KEY'];

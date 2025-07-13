@@ -28,6 +28,29 @@ class SupabaseApi {
     return {'meal_date': date, "menus": menus, 'food': foodSet.values.toList()};
   }
 
+  Future<List<Map<String, dynamic>>> getFoodDatas(int lastFoodId) async {
+    final response = await supabase
+        .from('foods')
+        .select('*')
+        .gt('id', lastFoodId) // id > lastFoodId
+        .order("id", ascending: true);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getLatestRecies(int lastRecipeId) async {
+    print(lastRecipeId);
+    final test = await supabase.from('recipes').select('*');
+    print(test);
+
+    final response = await supabase
+        .from('recipes')
+        .select('id, result_id, required_id')
+        .gt('id', lastRecipeId)
+        .order("id", ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   //   /// 메뉴 UUID를 기반으로 메뉴명, 재료 UUID 가져오기
   //   Future<List<Map<String, dynamic>>> getMenus(List<String> uuids) async {
   //     final response = await supabase

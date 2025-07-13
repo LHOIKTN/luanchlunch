@@ -1,64 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:launchlunch/data/hive/init.dart';
-import 'package:hive/hive.dart';
-import 'package:launchlunch/models/daily_data.dart';
-import 'package:launchlunch/models/ingredient.dart';
 import 'package:launchlunch/data/supabase/api_service.dart';
 import 'package:launchlunch/data/supabase/supabase_client.dart';
+import 'package:launchlunch/data/sqflite/sqflite_helper.dart';
+import 'package:intl/intl.dart';
+import 'package:launchlunch/utils/download_image.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:launchlunch/screens/inventory.dart';
+
+Future<void> deleteDatabaseFile() async {
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, 'app_data.db');
+  await deleteDatabase(path);
+  print('📛 DB 삭제됨: $path');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initHive();
+  await dotenv.load(fileName: '.env');
+  // await deleteDatabaseFile();
+  await SqfliteHelper.instance.database;
   await initSupabase();
-  final api = SupabaseApi();
-  final menus = await api.getMenusByDate('2025-07-11');
-  print('------------');
-  print(menus);
-
-  // 테스트: 임시 데이터 저장
-  final box = Hive.box<DailyData>('daily_data');
-  final testDate = '2099-01-01'; // 미래 날짜로 저장해 충돌 방지
-
-  // if (!box.containsKey(testDate)) {
-  //   await box.put(
-  //     testDate,
-  //     DailyData(
-  //       date: testDate,
-  //       menuText: ['미역국', '배추김치', '블루베리쿠키바'],
-  //       ingredients: [
-  //         Ingredient(
-  //           id: "Seaweed",
-  //           name: '미역',
-  //           imagePath:
-  //               'https://tcszpiaymqtftcbaydwy.supabase.co/storage/v1/object/public/images/Seaweed.png',
-  //         ),
-  //         Ingredient(
-  //           id: "napacabbage",
-  //           name: '배추',
-  //           imagePath:
-  //               'https://tcszpiaymqtftcbaydwy.supabase.co/storage/v1/object/public/images/NapaCabbage.png',
-  //         ),
-  //         Ingredient(
-  //           id: 'blueberry',
-  //           name: '블루베리',
-  //           imagePath:
-  //               'https://tcszpiaymqtftcbaydwy.supabase.co/storage/v1/object/public/images/Blueberry.png',
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  //   print('✅ 테스트 데이터 저장됨');
-  // } else {
-  //   print('⚠️ 테스트 데이터 이미 있음');
-  // }
-
-  // 저장된 데이터 확인
-  // final saved = box.get(testDate);
-  // print('📅 날짜: ${saved?.date}');
-  // print('📜 메뉴: ${saved?.menuText}');
-  // print('🍽️ 재료: ${saved?.ingredients.map((e) => e.name).join(', ')}');
-
+  // await syncInitialData();
   runApp(const MyApp());
+}
+
+Future<void> syncInitialData() async {
+  final api = SupabaseApi();
+  try {
+    // 마지막 푸드 목록 조회
+    final lastFoodId = await SqfliteHelper.instance.getLastFoodId();
+    // 추가 푸드 있는지 조회
+    final foods = await api.getFoodDatas(lastFoodId);
+    if (foods.isNotEmpty) {
+      print(foods);
+      for (final food in foods) {
+        final id = food['id'];
+        final name = food['name'];
+        final imageUrl = food['image_url'];
+        final savedPath = await downloadAndSaveImage(imageUrl);
+        if (savedPath == null) continue;
+        await SqfliteHelper.instance.insertFood(id, name, savedPath);
+      }
+    }
+    final checked = await SqfliteHelper.instance.getFoods();
+    print('---foods in DB---');
+    print(checked);
+
+    final lastRecipeId = await SqfliteHelper.instance.getLastRecipeId();
+    print(lastRecipeId);
+    final recipes = await api.getLatestRecies(lastRecipeId);
+    print(recipes);
+
+    final today = DateTime.now();
+    final formatted = DateFormat('yyyy-MM-dd').format(today);
+
+    print(formatted);
+    final menus = await api.getMenusByDate('2025-07-11');
+    print('------------');
+    print(menus);
+  } catch (e) {}
 }
 
 class MyApp extends StatelessWidget {
@@ -66,11 +68,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('테스트 완료')),
-        body: const Center(child: Text('콘솔에서 저장 확인 완료 ✅')),
-      ),
-    );
+    return MaterialApp(home: FoodGridScreen());
   }
 }
