@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:launchlunch/models/foods.dart';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 // --- 커스텀 위젯/클래스 최상단 선언 ---
 class FoodDetailModal extends StatelessWidget {
@@ -74,7 +75,15 @@ class FoodDetailModal extends StatelessWidget {
   }
 }
 
-class CompleteOverlay extends StatelessWidget {
+// 대표 색상 추출 함수
+Future<Color> getDominantColor(String imagePath) async {
+  final imageProvider = AssetImage(imagePath);
+  final palette = await PaletteGenerator.fromImageProvider(imageProvider);
+  return palette.dominantColor?.color ?? Colors.blue.shade100;
+}
+
+// CompleteOverlay를 StatefulWidget으로 변경
+class CompleteOverlay extends StatefulWidget {
   final Food food;
   final VoidCallback onClose;
   final VoidCallback onLongPress;
@@ -86,17 +95,37 @@ class CompleteOverlay extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<CompleteOverlay> createState() => _CompleteOverlayState();
+}
+
+class _CompleteOverlayState extends State<CompleteOverlay> {
+  Color raysColor = Colors.blue.shade100;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateDominantColor();
+  }
+
+  Future<void> _updateDominantColor() async {
+    final color = await getDominantColor(widget.food.imagePath);
+    setState(() {
+      raysColor = color.withOpacity(0.3);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onClose,
-      onLongPress: onLongPress,
+      onTap: widget.onClose,
+      onLongPress: widget.onLongPress,
       child: Container(
         color: Colors.white.withOpacity(0.95),
         child: Stack(
           children: [
             Positioned.fill(
               child: CustomPaint(
-                painter: _RaysPainter(color: Colors.blue.shade100),
+                painter: _RaysPainter(color: raysColor),
               ),
             ),
             Center(
@@ -109,10 +138,10 @@ class CompleteOverlay extends StatelessWidget {
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(food.name, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text(widget.food.name, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                   const SizedBox(height: 40),
-                  Image.asset(food.imagePath, width: 120, height: 120),
+                  Image.asset(widget.food.imagePath, width: 120, height: 120),
                   const SizedBox(height: 40),
                   const Text('탭하여 계속', style: TextStyle(fontSize: 18, color: Colors.grey)),
                 ],
@@ -174,6 +203,11 @@ final List<Food> sampleFoods = [
   Food(id: 16, name: "블루베리밥", imagePath: "assets/images/blueberry_rice.webp", recipeIds: [1, 11]),
   Food(id: 17, name: "감자", imagePath: "assets/images/potato.webp"),
 ];
+
+
+
+
+
 
 class FoodGridScreen extends StatefulWidget {
   const FoodGridScreen({super.key});
@@ -448,21 +482,35 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                         } else if (canCombine) {
                           // cooking.png 활성화(컬러, 하늘색 배경, 작게)
                           return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (matchedRecipe != null) {
+                            onTap: () async {
+                              if (matchedRecipe != null) {
+                                setState(() {
                                   resultFood = matchedRecipe;
                                   ownedRecipeIds.add(matchedRecipe.id);
                                   isCombinationFailed = false;
-                                  // 완성품이 인벤토리에 없으면 추가
                                   if (!availableFoods.any((f) => f.id == matchedRecipe!.id)) {
                                     availableFoods.add(matchedRecipe!);
                                   }
-                                } else {
+                                });
+                                // 완성 오버레이 띄우기
+                                await showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => CompleteOverlay(
+                                    food: matchedRecipe!,
+                                    onClose: () {
+                                      Navigator.of(context).pop();
+                                      _clearCombinationBox();
+                                    },
+                                    onLongPress: () {},
+                                  ),
+                                );
+                              } else {
+                                setState(() {
                                   resultFood = null;
                                   isCombinationFailed = true;
-                                }
-                              });
+                                });
+                              }
                             },
                             child: Container(
                               width: 60,

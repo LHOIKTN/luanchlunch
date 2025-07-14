@@ -2,9 +2,11 @@ class Recipes {
   final int id;
   final int resultId;
   final int requiredId;
+  final DateTime updatedAt;
 
   Recipes({required this.id, required this.resultId, required this.requiredId});
 
+  
   Map<String, dynamic> toMap() {
     return {'id': id, 'result_id': resultId, 'required_id': requiredId};
   }
@@ -14,6 +16,7 @@ class Recipes {
       id: map['id'],
       resultId: map['result_id'],
       requiredId: map['required_id'],
+      updatedAt: map['updated_at'],
     );
   }
 

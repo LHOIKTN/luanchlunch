@@ -8,6 +8,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:launchlunch/screens/inventory.dart';
+import 'globals.dart';
+import 'utils/recipe_utils.dart';
+import 'models/recipes.dart';
 
 Future<void> deleteDatabaseFile() async {
   final dbPath = await getDatabasesPath();
@@ -23,6 +26,11 @@ void main() async {
   await SqfliteHelper.instance.database;
   await initSupabase();
   // await syncInitialData();
+
+  // TODO: 실제 DB에서 레시피를 불러오는 함수로 교체
+  List<Recipes> recipesList = await fetchRecipesFromDB();
+  globalRecipeMap = RecipeUtils.groupByResult(recipesList);
+
   runApp(const MyApp());
 }
 

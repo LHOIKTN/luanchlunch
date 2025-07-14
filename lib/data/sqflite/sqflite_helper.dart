@@ -36,6 +36,16 @@ class SqfliteHelper {
         required_id INTEGER
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE recipes(
+        id INTEGER PRIMARY KEY,
+        resultId INTEGER,
+        requiredId INTEGER,
+        updated_at TEXT
+      )
+    ''');
+
   }
 
   Future<int> insertFood(int id, String name, String imagePath) async {
@@ -93,5 +103,15 @@ class SqfliteHelper {
     } else {
       return -1;
     }
+  }
+
+  Future<String> getLatestRecipeUpdatedAt() async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT MAX(updated_at) AS latest FROM recipes',
+    );
+    String latestUpdatedAt = result.first['latest'] ?? '1970-01-01';
+    return latestUpdatedAt;
   }
 }
