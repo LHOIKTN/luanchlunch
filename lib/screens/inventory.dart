@@ -486,7 +486,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                               if (matchedRecipe != null) {
                                 setState(() {
                                   resultFood = matchedRecipe;
-                                  ownedRecipeIds.add(matchedRecipe.id);
+                                  ownedRecipeIds.add(matchedRecipe!.id);
                                   isCombinationFailed = false;
                                   if (!availableFoods.any((f) => f.id == matchedRecipe!.id)) {
                                     availableFoods.add(matchedRecipe!);

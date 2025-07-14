@@ -51,6 +51,15 @@ class SupabaseApi {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  Future<List<Map<String, dynamic>>> getRecipes(String updatedAt) async {
+    final response = await supabase
+        .from('recipes')
+        .select('id, result_id, required_id, updated_at')
+        .gte('updated_at', updatedAt)
+        .order("id", ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   //   /// 메뉴 UUID를 기반으로 메뉴명, 재료 UUID 가져오기
   //   Future<List<Map<String, dynamic>>> getMenus(List<String> uuids) async {
   //     final response = await supabase

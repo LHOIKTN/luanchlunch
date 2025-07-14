@@ -23,6 +23,6 @@ class Food {
 
   @override
   String toString() {
-    return 'Food(id: $id, name: $name, imagePath: $imagePath)';
+    return 'Food(id: $id, name: $name, image_path: $imagePath)';
   }
 }

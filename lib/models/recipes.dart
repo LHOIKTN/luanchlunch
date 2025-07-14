@@ -4,11 +4,16 @@ class Recipes {
   final int requiredId;
   final DateTime updatedAt;
 
-  Recipes({required this.id, required this.resultId, required this.requiredId});
+  Recipes({required this.id, required this.resultId, required this.requiredId, required this.updatedAt});
 
   
   Map<String, dynamic> toMap() {
-    return {'id': id, 'result_id': resultId, 'required_id': requiredId};
+    return {
+      'id': id, 
+      'result_id': resultId, 
+      'required_id': requiredId,
+      'updated_at': updatedAt,
+    };
   }
 
   factory Recipes.fromMap(Map<String, dynamic> map) {
@@ -22,6 +27,6 @@ class Recipes {
 
   @override
   String toString() {
-    return 'Recipes(id: $id, resultId: $resultId, requiredId: $requiredId)';
+    return 'Recipes(id: $id, resultId: $resultId, requiredId: $requiredId, updatedAt: $updatedAt)';
   }
 }
