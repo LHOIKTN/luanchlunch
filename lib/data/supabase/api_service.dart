@@ -28,7 +28,19 @@ class SupabaseApi {
     return {'meal_date': date, "menus": menus, 'food': foodSet.values.toList()};
   }
 
-  Future<List<Map<String, dynamic>>> getFoodDatas(int lastFoodId) async {
+  // Updated to use updated_at for incremental sync
+  Future<List<Map<String, dynamic>>> getFoodDatas(String updatedAt) async {
+    final response = await supabase
+        .from('foods')
+        .select('*')
+        .gte('updated_at', updatedAt) // updated_at >= lastUpdatedAt
+        .order("id", ascending: true);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Legacy method for backward compatibility
+  Future<List<Map<String, dynamic>>> getFoodDatasById(int lastFoodId) async {
     final response = await supabase
         .from('foods')
         .select('*')
@@ -57,6 +69,16 @@ class SupabaseApi {
         .select('id, result_id, required_id, updated_at')
         .gte('updated_at', updatedAt)
         .order("id", ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Get user's inventory with incremental sync
+  Future<List<Map<String, dynamic>>> getInventory(String updatedAt) async {
+    final response = await supabase
+        .from('inventory')
+        .select('food_id, acquired_at, updated_at')
+        .gte('updated_at', updatedAt)
+        .order("food_id", ascending: true);
     return List<Map<String, dynamic>>.from(response);
   }
 

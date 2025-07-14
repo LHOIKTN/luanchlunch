@@ -24,7 +24,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   // await deleteDatabaseFile();
-  await SqfliteHelper.instance.database;
   await initSupabase();
   // await syncInitialData();
 
