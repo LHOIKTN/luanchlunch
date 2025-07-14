@@ -1,5 +1,5 @@
-import 'package:launchlunch/models/foods.dart';
 import 'package:flutter/material.dart';
+import 'package:launchlunch/models/foods.dart';
 
 final List<Food> sampleFoods = [
   Food(id: 9, name: "콩나물", imagePath: "assets/images/bean_sprout.webp"),
@@ -32,6 +32,9 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   List<Food> selectedFoods = [];
   List<Food> availableFoods = List.from(sampleFoods);
   Food? resultFood;
+  bool isCombinationFailed = false; // 조합 실패 상태
+  Food? selectedFoodForDetail; // 상세 정보를 보여줄 재료
+  Set<int> ownedRecipeIds = {}; // 획득한 레시피 id 목록
 
   void _addToCombinationBox(Food food) {
     if (selectedFoods.length >= 3) return;
@@ -39,6 +42,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       availableFoods.removeWhere((element) => element.id == food.id);
       selectedFoods.add(food);
       resultFood = null;
+      isCombinationFailed = false; // 새로운 재료 추가 시 실패 상태 초기화
     });
   }
 
@@ -47,6 +51,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       selectedFoods.removeWhere((element) => element.id == food.id);
       availableFoods.add(food);
       resultFood = null;
+      isCombinationFailed = false; // 재료 제거 시 실패 상태 초기화
     });
   }
 
@@ -55,243 +60,315 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       availableFoods.addAll(selectedFoods);
       selectedFoods.clear();
       resultFood = null;
+      isCombinationFailed = false; // 조합 박스 초기화 시 실패 상태 초기화
     });
   }
 
   void _combineIngredients() {
     if (selectedFoods.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('조합하려면 2개 이상의 재료가 필요합니다.')),
+        const SnackBar(content: Text('조합하려면 2개 이상의 재료가 필요합니다.'))
       );
       return;
     }
-    // 예시: 쌀+블루베리=블루베리밥
+    // 샘플: 쌀+블루베리=블루베리밥
     final hasRice = selectedFoods.any((food) => food.name == "쌀");
     final hasBlueberry = selectedFoods.any((food) => food.name == "블루베리");
     if (hasRice && hasBlueberry) {
       final blueberryRice = sampleFoods.firstWhere((food) => food.name == "블루베리밥");
       setState(() {
         resultFood = blueberryRice;
+        ownedRecipeIds.add(blueberryRice.id);
+        isCombinationFailed = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('블루베리밥을 만들었습니다!'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('블루베리밥을 만들었습니다!'),
+          backgroundColor: Colors.green,
+        ),
       );
     } else {
       setState(() {
         resultFood = null;
+        isCombinationFailed = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이 재료들로는 조합할 수 없습니다.')),
+        const SnackBar(
+          content: Text('이 재료들로는 조합할 수 없습니다.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
+  }
+
+  void _showFoodDetail(Food food) {
+    setState(() {
+      selectedFoodForDetail = food;
+    });
+  }
+
+  void _hideFoodDetail() {
+    setState(() {
+      selectedFoodForDetail = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final totalCount = sampleFoods.length;
-    final ownedCount = totalCount - availableFoods.length + selectedFoods.length;
+    final ownedCount =
+        totalCount - availableFoods.length + selectedFoods.length;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         elevation: 0,
-        toolbarHeight: 0, // 상단 AppBar 숨김
+        toolbarHeight: 0,
       ),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: Column(
           children: [
-            // 상단 중앙 보유/전체 텍스트
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Center(
                 child: Text(
                   '$ownedCount/$totalCount',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-            // 재료 그리드
             Expanded(
-              child: availableFoods.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '사용 가능한 재료가 없습니다.',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.8,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: availableFoods.isEmpty
+                    ? const Center(
+                        child: Text(
+                          '사용 가능한 재료가 없습니다.',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
+                      )
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.6,
+                            ),
                         itemCount: availableFoods.length,
                         itemBuilder: (context, index) {
                           final food = availableFoods[index];
                           return GestureDetector(
                             onTap: () => _addToCombinationBox(food),
+                            onLongPress: () => _showFoodDetail(food),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Card(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  elevation: 4,
+                                  elevation: 2,
                                   child: Padding(
-                                    padding: const EdgeInsets.all(16),
+                                    padding: const EdgeInsets.all(12),
                                     child: Image.asset(
                                       food.imagePath,
-                                      width: 72,
-                                      height: 72,
+                                      width: 48,
+                                      height: 48,
                                       fit: BoxFit.contain,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 4),
                                 Text(
                                   food.name,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  '터치하여 조합',
-                                  style: TextStyle(fontSize: 11, color: Colors.blue),
                                 ),
                               ],
                             ),
                           );
                         },
                       ),
-                    ),
+              ),
             ),
-            // 하단 조합 슬롯 3개 + 결과 + 초기화
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               color: Colors.grey.shade100,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 조합 슬롯 3개
-                  ...List.generate(3, (i) {
-                    if (i < selectedFoods.length) {
-                      final food = selectedFoods[i];
-                      return GestureDetector(
-                        onTap: () => _removeFromCombinationBox(food),
-                        child: Container(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ...List.generate(3, (i) {
+                      if (i < selectedFoods.length) {
+                        final food = selectedFoods[i];
+                        return GestureDetector(
+                          onTap: () => _removeFromCombinationBox(food),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.all(6),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(food.imagePath, height: 32),
+                              ],
+                            ),
+                          ),
+                        );
+                      } else {
+                        return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 4),
-                          padding: const EdgeInsets.all(8),
-                          width: 64,
-                          height: 64,
+                          width: 60,
+                          height: 60,
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.shade200),
+                            border: Border.all(color: Colors.grey.shade300),
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(food.imagePath, height: 40),
-                              const SizedBox(height: 4),
-                              Text(
-                                food.name,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                              const Text(
-                                '제거',
-                                style: TextStyle(fontSize: 9, color: Colors.red),
-                              ),
-                            ],
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.grey,
+                            size: 28,
                           ),
-                        ),
-                      );
-                    } else {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: const Icon(Icons.add, color: Colors.grey, size: 32),
-                      );
-                    }
-                  }),
-                  // > 아이콘
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward, size: 32, color: Colors.grey),
-                  ),
-                  // 결과 아이콘
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                        );
+                      }
+                    }),
+                    const SizedBox(width: 12),
+                    // 조합/완성품 영역
+                    Builder(
+                      builder: (context) {
+                        // 샘플: 쌀+블루베리=블루베리밥
+                        final hasRice = selectedFoods.any((food) => food.name == "쌀");
+                        final hasBlueberry = selectedFoods.any((food) => food.name == "블루베리");
+                        final canCombine = selectedFoods.length >= 2 && hasRice && hasBlueberry;
+                        final resultId = 16; // 블루베리밥 id
+                        final alreadyOwned = ownedRecipeIds.contains(resultId);
+                        if (alreadyOwned) {
+                          // 완성품 노출, 조합 불가
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.green),
+                            ),
+                            child: Image.asset(
+                              sampleFoods.firstWhere((f) => f.id == resultId).imagePath,
+                              height: 48,
+                            ),
+                          );
+                        } else {
+                          // 플라스크 노출
+                          return GestureDetector(
+                            onTap: canCombine ? _combineIngredients : null,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: canCombine ? Colors.blue : Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.science,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                          );
+                        }
+                      },
                     ),
-                    child: resultFood != null
-                        ? Image.asset(resultFood!.imagePath, height: 32)
-                        : const Icon(Icons.science, color: Colors.blueGrey, size: 32),
-                  ),
-                  // 조합 버튼
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ElevatedButton(
-                      onPressed: selectedFoods.length >= 2 ? _combineIngredients : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(48, 48),
-                        shape: const CircleBorder(),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.check, size: 28),
-                    ),
-                  ),
-                  // 초기화 버튼
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: selectedFoods.isNotEmpty ? _clearCombinationBox : null,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class FoodDetailScreen extends StatelessWidget {
-  final Food food;
-  const FoodDetailScreen({super.key, required this.food});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(food.name)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(food.imagePath, width: 200, height: 200),
-            const SizedBox(height: 20),
-            Text(food.name, style: const TextStyle(fontSize: 24)),
-          ],
-        ),
+          // Food Detail Modal
+          if (selectedFoodForDetail != null)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _hideFoodDetail,
+                child: Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {}, // 모달 내부 터치 시 닫히지 않도록
+                      child: Container(
+                        margin: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset(
+                              selectedFoodForDetail!.imagePath,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              selectedFoodForDetail!.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '${selectedFoodForDetail!.name}에 대한 설명입니다.\n다양한 요리에 활용할 수 있는 재료입니다.',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: _hideFoodDetail,
+                              child: const Text('닫기'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
