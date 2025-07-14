@@ -25,12 +25,10 @@ void main() async {
   await dotenv.load(fileName: '.env');
   // await deleteDatabaseFile();
   await initSupabase();
-  // await syncInitialData();
-
-  // TODO: 실제 DB에서 레시피를 불러오는 함수로 교체
-  // List<Recipes> recipesList = await fetchRecipesFromDB();
-  // globalRecipeMap = RecipeUtils.groupByResult(recipesList);
-
+  
+  // 데이터 프리로드 실행
+  await PreloadData.preloadAllData();
+  
   runApp(const MyApp());
 }
 
