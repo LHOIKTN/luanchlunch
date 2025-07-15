@@ -1,26 +1,40 @@
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-class AssetPreloader {
-
-  
+class AssetPreloaderSimple {
   static Future<void> downloadImagesToAssets() async {
     print('🖼️ Assets 이미지 다운로드 시작...');
     
     try {
-      // 1. 환경변수 로드
-      await dotenv.load(fileName: '.env');
+      // 환경변수 직접 읽기 (dotenv 대신)
+      final envFile = File('.env');
+      if (!await envFile.exists()) {
+        throw Exception('.env 파일이 없습니다.');
+      }
       
-      // 2. Supabase 초기화
-      await Supabase.initialize(
-        url: dotenv.env['SUPABASE_URL']!,
-        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-      );
+      final envContent = await envFile.readAsString();
+      print(envContent);
+      final envMap = <String, String>{};
       
-      // 3. 이미지 URL 조회
-      await _downloadFoodImages();
+      for (final line in envContent.split('\n')) {
+        if (line.contains('=')) {
+          final parts = line.split('=');
+          if (parts.length >= 2) {
+            envMap[parts[0].trim()] = parts[1].trim();
+          }
+        }
+      }
+      
+      final supabaseUrl = envMap['SUPABASE_URL'];
+      final supabaseKey = envMap['SUPABASE_KEY'];
+      
+      if (supabaseUrl == null || supabaseKey == null) {
+        throw Exception('SUPABASE_URL 또는 SUPABASE_ANON_KEY가 .env에 없습니다.');
+      }
+      
+      // Supabase API 직접 호출
+      await _downloadFoodImages(supabaseUrl, supabaseKey);
       
       print('✅ Assets 이미지 다운로드 완료!');
     } catch (e) {
@@ -28,20 +42,24 @@ class AssetPreloader {
     }
   }
   
-  static Future<void> _downloadFoodImages() async {
+  static Future<void> _downloadFoodImages(String supabaseUrl, String supabaseKey) async {
     print('📋 음식 이미지 URL 조회 중...');
     
-    final supabase = Supabase.instance.client;
-    final response = await supabase
-        .from('foods')
-        .select('id, name, image_url')
-        .execute();
+    // Supabase REST API 직접 호출
+    final response = await http.get(
+      Uri.parse('$supabaseUrl/rest/v1/foods?select=id,name,image_url'),
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': 'Bearer $supabaseKey',
+        'Content-Type': 'application/json',
+      },
+    );
     
-    if (response.error != null) {
-      throw Exception('음식 데이터 조회 실패: ${response.error!.message}');
+    if (response.statusCode != 200) {
+      throw Exception('음식 데이터 조회 실패: ${response.statusCode}');
     }
     
-    final List<dynamic> foodsData = response.data as List<dynamic>;
+    final List<dynamic> foodsData = jsonDecode(response.body);
     
     // assets/images 디렉토리 생성
     final assetsDir = Directory('assets/images');
@@ -63,10 +81,9 @@ class AssetPreloader {
       }
       
       try {
-        
-        final fileName = name.toLowerCase().replaceAll(' ', '_');
+        final fileName = imageUrl.replaceAll(' ', '_').replaceAll('png','webp');
         final filePath = 'assets/images/$fileName';
-        
+        print(filePath);
         // 이미 존재하는지 확인
         final file = File(filePath);
         if (await file.exists()) {
@@ -105,5 +122,5 @@ class AssetPreloader {
 
 // 독립 실행용 main 함수
 void main() async {
-  await AssetPreloader.downloadImagesToAssets();
+  await AssetPreloaderSimple.downloadImagesToAssets();
 } 

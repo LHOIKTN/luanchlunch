@@ -13,6 +13,11 @@ Future<void> initSupabase() async {
     return; // Already initialized, just return
   }
   
+  // Check if keys are available
+  if (supabaseUrl == null || supabaseAnonKey == null) {
+    throw Exception('Supabase URL 또는 Anon Key가 설정되지 않았습니다.');
+  }
+  
   // Initialize Supabase
   await Supabase.initialize(url: supabaseUrl!, anonKey: supabaseAnonKey!);
   supabase = Supabase.instance.client;

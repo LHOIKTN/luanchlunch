@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:launchlunch/models/foods.dart';
+import 'package:launchlunch/models/food.dart';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:palette_generator/palette_generator.dart';
