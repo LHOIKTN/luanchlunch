@@ -6,6 +6,7 @@ import '../models/food.dart';
 import '../data/hive/hive_helper.dart';
 import '../data/supabase/api_service.dart';
 import '../utils/download_image.dart';
+import '../utils/asset_image_manager.dart';
 
 class PreloadData {
   static Future<void> preloadAllData() async {
@@ -53,6 +54,10 @@ class PreloadData {
       
       print('🔄 ${foodsData.length}개의 음식 데이터 처리 중...');
       
+      // AssetImageManager 초기화 (assets 스캔)
+      final assetImageManager = AssetImageManager();
+      await assetImageManager.assetImages; // assets 스캔 실행
+      
       final List<Food> foodList = [];
       String latestFoodUpdatedAt = lastUpdatedAt;
       
@@ -67,17 +72,17 @@ class PreloadData {
         // 이미지 경로 처리
         String localImagePath = '';
         
-        // 1. assets에 이미 있는지 확인
-        final assetPath = 'assets/images/${name.toLowerCase().replaceAll(' ', '_')}.webp';
-        final assetFile = File(assetPath);
+        // AssetImageManager를 사용하여 이미지 타입 확인
+        final assetPath = 'assets/images/$imageUrl';
         
-        if (await assetFile.exists()) {
+        if (await assetImageManager.isAssetImage(assetPath)) {
+          // assets에 있는 이미지는 그대로 사용
           localImagePath = assetPath;
-          print('✅ Assets에서 발견: $name -> $localImagePath');
+          print('✅ Assets 이미지 사용: $name -> $localImagePath');
         } else {
-          // 2. Supabase bucket에서 다운로드
+          // assets에 없는 이미지만 다운로드
           try {
-            print('⬇️ 다운로드 중: $name');
+            print('⬇️ Supabase에서 다운로드 중: $name');
             final downloadedPath = await downloadAndSaveImage(imageUrl);
             if (downloadedPath != null) {
               localImagePath = downloadedPath;
@@ -87,7 +92,7 @@ class PreloadData {
               localImagePath = ''; // 원본 URL 유지
             }
           } catch (e) {
-            print('❌ 다운로드 에러: $name - $e');
+            print('❌ 다운로드 에러: $name -> $e');
             localImagePath = ''; // 원본 URL 유지
           }
         }

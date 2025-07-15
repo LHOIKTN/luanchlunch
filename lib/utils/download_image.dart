@@ -3,10 +3,19 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'asset_image_manager.dart';
 
 final supabaseStorageUrl = dotenv.env['SUPABASE_BUCKET'];
 
 Future<String?> downloadAndSaveImage(String fileName) async {
+  // assets에 있는 이미지는 다운로드하지 않음
+  final assetImageManager = AssetImageManager();
+  final assetImagePath = 'assets/images/$fileName';
+  
+  if (await assetImageManager.isAssetImage(assetImagePath)) {
+    print('🖼️ Assets 이미지이므로 다운로드 건너뜀: $fileName');
+    return assetImagePath;
+  }
   try {
     print('🖼️ 이미지 다운로드 시작: $fileName');
     print('🖼️ Supabase URL: $supabaseStorageUrl');
