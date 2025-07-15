@@ -8,6 +8,9 @@ final supabaseStorageUrl = dotenv.env['SUPABASE_BUCKET'];
 
 Future<String?> downloadAndSaveImage(String fileName) async {
   try {
+    print('🖼️ 이미지 다운로드 시작: $fileName');
+    print('🖼️ Supabase URL: $supabaseStorageUrl');
+    
     // 개발 환경용 SSL 검증 우회 (프로덕션에서는 제거)
     final client = http.Client();
     
@@ -27,7 +30,15 @@ Future<String?> downloadAndSaveImage(String fileName) async {
         final filePath = p.join(dir.path, fileName);
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
+        
+        print('✅ 이미지 다운로드 완료: $filePath');
+        print('✅ 파일 존재 확인: ${await file.exists()}');
+        print('✅ 파일 크기: ${await file.length()} bytes');
+        
         return filePath;
+      } else {
+        print('❌ HTTP 에러: ${response.statusCode}');
+        return null;
       }
     } else {
       // 원본 URL 사용
@@ -43,13 +54,20 @@ Future<String?> downloadAndSaveImage(String fileName) async {
         final filePath = p.join(dir.path, fileName);
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
+        
+        print('✅ 이미지 다운로드 완료: $filePath');
+        print('✅ 파일 존재 확인: ${await file.exists()}');
+        print('✅ 파일 크기: ${await file.length()} bytes');
+        
         return filePath;
+      } else {
+        print('❌ HTTP 에러: ${response.statusCode}');
+        return null;
       }
     }
     
-    return null;
   } catch (e) {
-    print('이미지 다운로드 에러: $e');
+    print('❌ 이미지 다운로드 에러: $e');
     return null;
   }
 }

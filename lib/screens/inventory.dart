@@ -4,6 +4,7 @@ import 'package:launchlunch/data/hive/hive_helper.dart';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:palette_generator/palette_generator.dart';
+import 'dart:io'; // File 클래스를 사용하기 위해 추가
 
 // --- 커스텀 위젯/클래스 최상단 선언 ---
 class FoodDetailModal extends StatelessWidget {
@@ -41,7 +42,9 @@ class FoodDetailModal extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(food.imageUrl, width: 80, height: 80, fit: BoxFit.contain),
+                  food.imageUrl.startsWith('assets/') 
+                    ? Image.asset(food.imageUrl, width: 80, height: 80, fit: BoxFit.contain)
+                    : Image.file(File(food.imageUrl), width: 80, height: 80, fit: BoxFit.contain),
                   const SizedBox(height: 16),
                   Text(food.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   const SizedBox(height: 12),
@@ -58,7 +61,9 @@ class FoodDetailModal extends StatelessWidget {
                           margin: const EdgeInsets.symmetric(horizontal: 8),
                           child: Column(
                             children: [
-                              Image.asset(f.imageUrl, width: 40, height: 40),
+                              f.imageUrl.startsWith('assets/') 
+                                ? Image.asset(f.imageUrl, width: 40, height: 40)
+                                : Image.file(File(f.imageUrl), width: 40, height: 40),
                               const SizedBox(height: 4),
                               Text(f.name, style: const TextStyle(fontSize: 12)),
                             ],
@@ -81,7 +86,12 @@ class FoodDetailModal extends StatelessWidget {
 
 // 대표 색상 추출 함수
 Future<Color> getDominantColor(String imagePath) async {
-  final imageProvider = AssetImage(imagePath);
+  ImageProvider imageProvider;
+  if (imagePath.startsWith('assets/')) {
+    imageProvider = AssetImage(imagePath);
+  } else {
+    imageProvider = FileImage(File(imagePath));
+  }
   final palette = await PaletteGenerator.fromImageProvider(imageProvider);
   return palette.dominantColor?.color ?? Colors.blue.shade100;
 }
@@ -145,7 +155,9 @@ class _CompleteOverlayState extends State<CompleteOverlay> {
                     child: Text(widget.food.name, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                   const SizedBox(height: 40),
-                  Image.asset(widget.food.imageUrl, width: 120, height: 120),
+                  widget.food.imageUrl.startsWith('assets/') 
+                    ? Image.asset(widget.food.imageUrl, width: 120, height: 120)
+                    : Image.file(File(widget.food.imageUrl), width: 120, height: 120),
                   const SizedBox(height: 40),
                   const Text('탭하여 계속', style: TextStyle(fontSize: 18, color: Colors.grey)),
                 ],
@@ -363,11 +375,54 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                                             elevation: 2,
                                             child: Padding(
                                               padding: const EdgeInsets.all(12),
-                                              child: Image.asset(
-                                                food.imageUrl,
-                                                width: 48,
-                                                height: 48,
-                                                fit: BoxFit.contain,
+                                              child: Builder(
+                                                builder: (context) {
+                                                  // 이미지 경로 로그 출력
+                                                  print('🖼️ 이미지 로드 시도: ${food.imageUrl}');
+                                                  
+                                                  // 파일 존재 여부 확인 (로컬 파일인 경우)
+                                                  if (food.imageUrl.startsWith('/')) {
+                                                    final file = File(food.imageUrl);
+                                                    file.exists().then((exists) {
+                                                      print('🖼️ 파일 존재 여부: $exists - ${food.imageUrl}');
+                                                    });
+                                                  }
+                                                  
+                                                  return food.imageUrl.startsWith('assets/') 
+                                                    ? Image.asset(
+                                                        food.imageUrl,
+                                                        width: 48,
+                                                        height: 48,
+                                                        fit: BoxFit.contain,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          print('❌ Assets 이미지 로드 실패: ${food.imageUrl}');
+                                                          print('❌ 에러: $error');
+                                                          return Container(
+                                                            width: 48,
+                                                            height: 48,
+                                                            color: Colors.grey[300],
+                                                            child: const Icon(Icons.error),
+                                                          );
+                                                        },
+                                                      )
+                                                    : Image.file(
+                                                        File(food.imageUrl), // 이미 전체 경로가 저장되어 있음
+                                                        width: 48,
+                                                        height: 48,
+                                                        fit: BoxFit.contain,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          print('❌ 로컬 파일 이미지 로드 실패: ${food.imageUrl}');
+                                                          print('❌ 파일 존재 여부: ${File(food.imageUrl).existsSync()}');
+                                                          print('❌ 에러: $error');
+                                                          return Container(
+                                                            width: 48,
+                                                            height: 48,
+                                                            color: Colors.grey[300],
+                                                            child: const Icon(Icons.error),
+                                                          );
+                                                        },
+                                                      );
+                                                },
                                               ),
                                             ),
                                           ),
@@ -415,7 +470,9 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Image.asset(food.imageUrl, height: 32),
+                                    food.imageUrl.startsWith('assets/') 
+                                      ? Image.asset(food.imageUrl, height: 32)
+                                      : Image.file(File(food.imageUrl), height: 32),
                                   ],
                                 ),
                               ),
@@ -472,10 +529,9 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: Colors.green),
                                   ),
-                                  child: Image.asset(
-                                    matchedRecipe.imageUrl,
-                                    height: 48,
-                                  ),
+                                  child: matchedRecipe.imageUrl.startsWith('assets/') 
+                                    ? Image.asset(matchedRecipe.imageUrl, height: 48)
+                                    : Image.file(File(matchedRecipe.imageUrl), height: 48),
                                 );
                               } else {
                                 // X 표시

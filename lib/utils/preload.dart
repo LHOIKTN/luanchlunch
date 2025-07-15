@@ -12,7 +12,7 @@ class PreloadData {
     print('🔄 데이터 프리로드 시작...');
     
     try {
-      // await _syncFoods();
+      await _syncFoods();
       await _syncRecipes();
       // await _syncInventory();
       
@@ -38,58 +38,99 @@ class PreloadData {
     final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('foods');
     print('📅 마지막 갱신일: $lastUpdatedAt');
     
-    final api = SupabaseApi();
-    final foodsData = await api.getFoodDatas(lastUpdatedAt);
-    print(foodsData);
-
-    if (foodsData.isEmpty) {
-      print('✅ 새로운 음식 데이터가 없습니다.');
-      return;
-    }
-    
-    print('🔄 ${foodsData.length}개의 음식 데이터 처리 중...');
-    
-    final List<Food> foodList = [];
-    String latestUpdatedAt = lastUpdatedAt;
-    
-    for (final foodData in foodsData) {
-      final int id = foodData['id'];
-      final String name = foodData['name'];
-      final String updatedAt = foodData['updated_at'];
+    try {
+      final api = SupabaseApi();
+      print('🔗 Supabase API 인스턴스 생성 완료');
       
-      // assets에 있는 이미지만 처리
-      final assetPath = 'assets/images/${name.toLowerCase().replaceAll(' ', '_')}.webp';
+      final foodsData = await api.getFoodDatas(lastUpdatedAt);
+      print('📊 Supabase 응답 데이터: ${foodsData.length}개');
+      print('📋 첫 번째 데이터: ${foodsData.isNotEmpty ? foodsData.first : "없음"}');
       
-      if (await _isAssetAvailable(assetPath)) {
-        // Food 객체 생성 (assets 경로 사용)
+      if (foodsData.isEmpty) {
+        print('✅ 새로운 음식 데이터가 없습니다.');
+        return;
+      }
+      
+      print('🔄 ${foodsData.length}개의 음식 데이터 처리 중...');
+      
+      final List<Food> foodList = [];
+      String latestUpdatedAt = lastUpdatedAt;
+      
+      for (final foodData in foodsData) {
+        final int id = foodData['id'];
+        final String name = foodData['name'];
+        String imageUrl = foodData['image_url'];
+        final String updatedAt = foodData['updated_at'];
+        
+        print('🍽️ 처리 중: ID=$id, 이름=$name, 이미지=$imageUrl');
+        
+        // 이미지 경로 처리
+        String localImagePath = '';
+        
+        // 1. assets에 이미 있는지 확인
+        final assetPath = 'assets/images/${name.toLowerCase().replaceAll(' ', '_')}.webp';
+        final assetFile = File(assetPath);
+        
+        if (await assetFile.exists()) {
+          localImagePath = assetPath;
+          print('✅ Assets에서 발견: $name -> $localImagePath');
+        } else {
+          // 2. Supabase bucket에서 다운로드
+          try {
+            print('⬇️ 다운로드 중: $name');
+            final downloadedPath = await downloadAndSaveImage(imageUrl);
+            if (downloadedPath != null) {
+              localImagePath = downloadedPath;
+              print('✅ 다운로드 완료: $name -> $localImagePath');
+            } else {
+              print('❌ 다운로드 실패: $name');
+              localImagePath = ''; // 원본 URL 유지
+            }
+          } catch (e) {
+            print('❌ 다운로드 에러: $name - $e');
+            localImagePath = ''; // 원본 URL 유지
+          }
+        }
+        
+        // Food 객체 생성
         final food = Food(
           id: id,
           name: name,
-          imageUrl: assetPath,
+          imageUrl: localImagePath,
         );
+
+        if(localImagePath!=''){
+          foodList.add(food);
+        }
         
-        foodList.add(food);
-        print('✅ Assets에서 발견: $name -> $assetPath');
-      } else {
-        print('⚠️ Assets에 없음, 건너뜀: $name');
+        // 최신 갱신일 추적
+        if (updatedAt.compareTo(latestUpdatedAt) > 0) {
+          latestUpdatedAt = updatedAt;
+        }
       }
       
-      // 최신 갱신일 추적
-      if (updatedAt.compareTo(latestUpdatedAt) > 0) {
-        latestUpdatedAt = updatedAt;
+      // Hive에 저장
+      await HiveHelper.instance.saveFoods(foodList);
+      
+      // 저장된 데이터 확인
+      print('📋 Hive에 저장된 음식 데이터 확인:');
+      final savedFoods = HiveHelper.instance.getAllFoods();
+      for (final food in savedFoods) {
+        print('  - ID: ${food.id}, 이름: ${food.name}, 이미지: ${food.imageUrl}');
       }
+      print('📋 총 ${savedFoods.length}개의 음식이 Hive에 저장됨');
+      
+      // 마지막 갱신일 업데이트
+      if (latestUpdatedAt != lastUpdatedAt) {
+        await HiveHelper.instance.setLastUpdatedAt('foods', latestUpdatedAt);
+        print('📅 음식 마지막 갱신일 업데이트: $latestUpdatedAt');
+      }
+      
+      print('✅ 음식 데이터 동기화 완료: ${foodList.length}개');
+    } catch (e) {
+      print('❌ 음식 데이터 동기화 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
     }
-    
-    // Hive에 저장
-    await HiveHelper.instance.saveFoods(foodList);
-    
-    // 마지막 갱신일 업데이트
-    if (latestUpdatedAt != lastUpdatedAt) {
-      await HiveHelper.instance.setLastUpdatedAt('foods', latestUpdatedAt);
-      print('📅 음식 마지막 갱신일 업데이트: $latestUpdatedAt');
-    }
-    
-    print('✅ 음식 데이터 동기화 완료: ${foodList.length}개');
   }
 
   static Future<void> _syncRecipes() async {

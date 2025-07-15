@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:launchlunch/data/supabase/api_service.dart';
 import 'package:launchlunch/data/supabase/supabase_client.dart';
 import 'package:intl/intl.dart';
@@ -13,8 +14,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await initSupabase();
-  await HiveHelper.instance.init();
-      
+  
+  // Web 환경에서는 Hive 초기화 건너뛰기
+  if (!kIsWeb) {
+    await HiveHelper.instance.init();
+  }
   
   // 데이터 프리로드 실행
   await PreloadData.preloadAllData();
