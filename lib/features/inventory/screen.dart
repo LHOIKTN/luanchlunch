@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:launchlunch/models/food.dart';
 import 'package:launchlunch/data/food_data.dart';
-import 'package:launchlunch/widgets/food_detail_modal.dart';
-import 'package:launchlunch/widgets/complete_overlay.dart';
-import 'package:launchlunch/widgets/food_grid_item.dart';
-import 'package:launchlunch/widgets/combination_box.dart';
+import 'package:launchlunch/features/inventory/food_detail_modal.dart';
+import 'package:launchlunch/features/inventory/complete_overlay.dart';
+import 'package:launchlunch/features/inventory/food_grid_item.dart';
+import 'package:launchlunch/features/inventory/combination_box.dart';
 
 class FoodGridScreen extends StatefulWidget {
   const FoodGridScreen({super.key});

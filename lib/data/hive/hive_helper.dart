@@ -19,11 +19,19 @@ class HiveHelper {
 
   // Metadata management for last updated_at times
   String getLastUpdatedAt(String tableName) {
-    return _metadataBox?.get('last_updated_${tableName}') ?? '1970-01-01';
+    return _metadataBox?.get('last_updated_$tableName') ?? '1970-01-01';
+  }
+
+  Future<void> resetMetadata(String boxName) async {
+    await Hive.deleteBoxFromDisk(boxName);
   }
 
   Future<void> setLastUpdatedAt(String tableName, String updatedAt) async {
-    await _metadataBox?.put('last_updated_${tableName}', updatedAt);
+    await _metadataBox?.put('last_updated_$tableName', updatedAt);
+  }
+
+  String? getUserId() {
+    return _metadataBox?.get('uuid');
   }
 
   // Get all foods
@@ -43,9 +51,7 @@ class HiveHelper {
 
   // Save multiple foods
   Future<void> saveFoods(List<Food> foods) async {
-    final Map<int, Food> foodMap = {
-      for (var food in foods) food.id: food
-    };
+    final Map<int, Food> foodMap = {for (var food in foods) food.id: food};
     await _foodBox?.putAll(foodMap);
   }
 
@@ -69,19 +75,23 @@ class HiveHelper {
 
   // Get foods that user has acquired (acquiredAt is not null)
   List<Food> getAcquiredFoods() {
-    return _foodBox?.values.where((food) => food.acquiredAt != null).toList() ?? [];
+    return _foodBox?.values.where((food) => food.acquiredAt != null).toList() ??
+        [];
   }
 
   // Get foods that can be crafted (have recipes)
   List<Food> getCraftableFoods() {
-    return _foodBox?.values.where((food) => food.recipes != null && food.recipes!.isNotEmpty).toList() ?? [];
+    return _foodBox?.values
+            .where((food) => food.recipes != null && food.recipes!.isNotEmpty)
+            .toList() ??
+        [];
   }
 
   // Check if user can craft a specific food
   bool canCraftFood(int foodId, List<int> userInventory) {
     final food = _foodBox?.get(foodId);
     if (food?.recipes == null) return false;
-    
+
     for (final requiredId in food!.recipes!) {
       if (!userInventory.contains(requiredId)) {
         return false;
@@ -93,7 +103,9 @@ class HiveHelper {
   // Get all craftable foods with current inventory
   List<Food> getAvailableCrafts(List<int> userInventory) {
     final craftableFoods = getCraftableFoods();
-    return craftableFoods.where((food) => canCraftFood(food.id, userInventory)).toList();
+    return craftableFoods
+        .where((food) => canCraftFood(food.id, userInventory))
+        .toList();
   }
 
   // Clear all data
@@ -119,4 +131,4 @@ class HiveHelper {
     await _foodBox?.close();
     await _metadataBox?.close();
   }
-} 
+}
