@@ -29,7 +29,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // return MaterialApp(home: FoodGridScreen());
-    return MaterialApp(home: Text("hello"));
+    return MaterialApp(home: FoodGridScreen());
   }
 }
