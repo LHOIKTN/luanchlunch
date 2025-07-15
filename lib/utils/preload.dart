@@ -36,7 +36,7 @@ class PreloadData {
     print('🍽️ 음식 데이터 동기화 시작...');
     
     final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('foods');
-    print('📅 마지막 갱신일: $lastUpdatedAt');
+    print('📅 음식 마지막 갱신일: $lastUpdatedAt');
     
     try {
       final api = SupabaseApi();
@@ -54,7 +54,7 @@ class PreloadData {
       print('🔄 ${foodsData.length}개의 음식 데이터 처리 중...');
       
       final List<Food> foodList = [];
-      String latestUpdatedAt = lastUpdatedAt;
+      String latestFoodUpdatedAt = lastUpdatedAt;
       
       for (final foodData in foodsData) {
         final int id = foodData['id'];
@@ -103,9 +103,9 @@ class PreloadData {
           foodList.add(food);
         }
         
-        // 최신 갱신일 추적
-        if (updatedAt.compareTo(latestUpdatedAt) > 0) {
-          latestUpdatedAt = updatedAt;
+        // 음식 데이터의 최신 갱신일 추적
+        if (updatedAt.compareTo(latestFoodUpdatedAt) > 0) {
+          latestFoodUpdatedAt = updatedAt;
         }
       }
       
@@ -120,10 +120,10 @@ class PreloadData {
       }
       print('📋 총 ${savedFoods.length}개의 음식이 Hive에 저장됨');
       
-      // 마지막 갱신일 업데이트
-      if (latestUpdatedAt != lastUpdatedAt) {
-        await HiveHelper.instance.setLastUpdatedAt('foods', latestUpdatedAt);
-        print('📅 음식 마지막 갱신일 업데이트: $latestUpdatedAt');
+      // 음식 마지막 갱신일 업데이트 (foods 테이블용)
+      if (latestFoodUpdatedAt != lastUpdatedAt) {
+        await HiveHelper.instance.setLastUpdatedAt('foods', latestFoodUpdatedAt);
+        print('📅 음식 마지막 갱신일 업데이트: $latestFoodUpdatedAt');
       }
       
       print('✅ 음식 데이터 동기화 완료: ${foodList.length}개');
@@ -137,7 +137,7 @@ class PreloadData {
     print('📋 레시피 데이터 동기화 시작...');
     
     final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('recipes');
-    print('📅 마지막 갱신일: $lastUpdatedAt');
+    print('📅 레시피 마지막 갱신일: $lastUpdatedAt');
     
     final api = SupabaseApi();
     final recipesData = await api.getRecipes(lastUpdatedAt);
@@ -149,41 +149,32 @@ class PreloadData {
     
     print('🔄 ${recipesData.length}개의 레시피 데이터 처리 중...');
     
-    // 레시피를 result_id별로 그룹핑
-    final Map<int, List<int>> recipeMap = {};
-    String latestUpdatedAt = lastUpdatedAt;
+    String latestRecipeUpdatedAt = lastUpdatedAt;
     
+    // 이미 result_id로 그룹핑된 데이터 처리
     for (final recipe in recipesData) {
       final int resultId = recipe['result_id'];
-      final int requiredId = recipe['required_id'];
+      final List<int> requiredIds = List<int>.from(recipe['required_ids']);
       final String updatedAt = recipe['updated_at'];
       
-      recipeMap.putIfAbsent(resultId, () => []).add(requiredId);
+      print('📝 음식 $resultId 레시피 업데이트: $requiredIds (updated_at: $updatedAt)');
       
-      // 최신 갱신일 추적
-      if (updatedAt.compareTo(latestUpdatedAt) > 0) {
-        latestUpdatedAt = updatedAt;
+      // 각 음식의 레시피 정보 업데이트
+      await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
+      
+      // 레시피 데이터의 최신 갱신일 추적
+      if (updatedAt.compareTo(latestRecipeUpdatedAt) > 0) {
+        latestRecipeUpdatedAt = updatedAt;
       }
     }
     
-    // 각 음식의 레시피 정보 업데이트
-    for (final entry in recipeMap.entries) {
-      final resultId = entry.key;
-      final requiredIds = entry.value;
-      
-      await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
-      print('📝 음식 $resultId 레시피 업데이트: $requiredIds');
+    // 레시피 마지막 갱신일 업데이트 (recipes 테이블용)
+    if (latestRecipeUpdatedAt != lastUpdatedAt) {
+      await HiveHelper.instance.setLastUpdatedAt('recipes', latestRecipeUpdatedAt);
+      print('📅 레시피 마지막 갱신일 업데이트: $latestRecipeUpdatedAt');
     }
     
-    // 전역 변수에 할당
-    
-    // 마지막 갱신일 업데이트
-    if (latestUpdatedAt != lastUpdatedAt) {
-      await HiveHelper.instance.setLastUpdatedAt('recipes', latestUpdatedAt);
-      print('📅 레시피 마지막 갱신일 업데이트: $latestUpdatedAt');
-    }
-    
-    print('✅ 레시피 데이터 동기화 완료: ${recipeMap.length}개 조합');
+    print('✅ 레시피 데이터 동기화 완료: ${recipesData.length}개 조합');
   }
 
   // static Future<void> _syncInventory() async {

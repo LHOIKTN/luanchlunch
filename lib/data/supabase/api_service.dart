@@ -30,13 +30,33 @@ class SupabaseApi {
 
   // Updated to use updated_at for incremental sync
   Future<List<Map<String, dynamic>>> getFoodDatas(String updatedAt) async {
-    final response = await supabase
-        .from('foods')
-        .select('*')
-        .gte('updated_at', updatedAt) // updated_at >= lastUpdatedAt
-        .order("id", ascending: true);
+    int retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        final response = await supabase
+            .from('foods')
+            .select('*')
+            .gte('updated_at', updatedAt) // updated_at >= lastUpdatedAt
+            .order("id", ascending: true);
 
-    return List<Map<String, dynamic>>.from(response);
+        return List<Map<String, dynamic>>.from(response);
+      } catch (e) {
+        retryCount++;
+        print('⚠️ 음식 데이터 요청 실패 (시도 $retryCount/$maxRetries): $e');
+        
+        if (retryCount >= maxRetries) {
+          print('❌ 최대 재시도 횟수 초과');
+          rethrow;
+        }
+        
+        // 1초 대기 후 재시도
+        await Future.delayed(Duration(seconds: 1));
+      }
+    }
+    
+    throw Exception('음식 데이터 요청 실패');
   }
 
   // Legacy method for backward compatibility
@@ -68,8 +88,36 @@ class SupabaseApi {
         .from('recipes')
         .select('id, result_id, required_id, updated_at')
         .gte('updated_at', updatedAt)
-        .order("id", ascending: true);
-    return List<Map<String, dynamic>>.from(response);
+        .order("result_id, updated_at", ascending: true);
+    
+    final rawData = List<Map<String, dynamic>>.from(response);
+    
+    // result_id로 그룹핑하고 required_id들을 수집
+    final Map<int, Map<String, dynamic>> groupedRecipes = {};
+    
+    for (final recipe in rawData) {
+      final int resultId = recipe['result_id'];
+      final int requiredId = recipe['required_id'];
+      final String updatedAt = recipe['updated_at'];
+      
+      if (!groupedRecipes.containsKey(resultId)) {
+        groupedRecipes[resultId] = {
+          'result_id': resultId,
+          'required_ids': <int>[],
+          'updated_at': updatedAt,
+        };
+      }
+      
+      // required_id 추가
+      groupedRecipes[resultId]!['required_ids'].add(requiredId);
+      
+      // 가장 최신 updated_at으로 업데이트
+      if (updatedAt.compareTo(groupedRecipes[resultId]!['updated_at']) > 0) {
+        groupedRecipes[resultId]!['updated_at'] = updatedAt;
+      }
+    }
+    
+    return groupedRecipes.values.toList();
   }
 
   // Get user's inventory with incremental sync

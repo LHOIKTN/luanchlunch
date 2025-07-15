@@ -102,6 +102,18 @@ class HiveHelper {
     await _metadataBox?.clear();
   }
 
+  // Clear specific table's last updated time
+  Future<void> clearLastUpdatedAt(String tableName) async {
+    await _metadataBox?.delete('last_updated_${tableName}');
+    print('🗑️ $tableName 테이블의 마지막 갱신 시간 초기화됨');
+  }
+
+  // Reset all last updated times to default
+  Future<void> resetAllLastUpdatedAt() async {
+    await _metadataBox?.clear();
+    print('🗑️ 모든 테이블의 마지막 갱신 시간 초기화됨');
+  }
+
   // Close database
   Future<void> close() async {
     await _foodBox?.close();
