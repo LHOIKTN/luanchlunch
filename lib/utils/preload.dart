@@ -15,10 +15,12 @@ class PreloadData {
     print('🔄 데이터 프리로드 시작...');
 
     try {
-      await _syncUser();
+      final userId = await _syncUser();
       await _syncFoods();
       await _syncRecipes();
-      // await _syncInventory();
+      if (userId != null) { 
+        await _syncInventory(userId);
+      }
 
       print('✅ 데이터 프리로드 완료!');
     } catch (e) {
@@ -36,22 +38,51 @@ class PreloadData {
     }
   }
 
-  Future<void> _syncUser() async {
-    print('유저확인');
-    final userId = HiveHelper.instance.getUserId();
-    print('데이터 조회');
-    print(userId);
+  Future<String?> _syncUser() async {
+    print('👤 유저 확인 시작...');
+    final userInfo = HiveHelper.instance.getUserInfo();
+    final userId = userInfo?['id']?.toString();
+    print('📋 저장된 유저 ID: $userId');
+    
     if (userId == null) {
-      // DB에  유저 추가
-      final userInfo = await api.createUser();
-      print(userInfo);
-    } else {}
+      // DB에 유저 추가
+      print('🆕 새 유저 생성 중...');
+      final newUserInfo = await api.createUser();
+      print('📊 생성된 유저 정보: $newUserInfo');
+      
+      // Hive에 사용자 정보 저장
+      if (newUserInfo != null) {
+        await HiveHelper.instance.saveUserInfo(newUserInfo);
+        print('✅ 사용자 정보 Hive 저장 완료');
+        
+      } else {
+        print('❌ 사용자 정보 생성 실패');
+        
+      }
+    } else {
+      print('✅ 기존 유저 확인됨: $userId');
+      if (userId != null) {
+        final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('users') ?? '1970-01-01';
+        final updatedUserInfo = await api.getUserInfo(userId, lastUpdatedAt);
+        print('📊 업데이트된 유저 정보: $updatedUserInfo');
+        
+        // 업데이트된 정보가 있으면 Hive에 저장
+        if (updatedUserInfo != null && updatedUserInfo.isNotEmpty) {
+          await HiveHelper.instance.saveUserInfo(updatedUserInfo);
+          print('✅ 사용자 정보 업데이트 완료');
+        }
+        
+      } else {
+        print('❌ 유저 ID가 null입니다');
+      }
+      return userId;
+    }
   }
 
   Future<void> _syncFoods() async {
     print('🍽️ 음식 데이터 동기화 시작...');
 
-    final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('foods');
+    final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('foods') ?? '1970-01-01';
     print('📅 음식 마지막 갱신일: $lastUpdatedAt');
 
     try {
@@ -156,7 +187,7 @@ class PreloadData {
   Future<void> _syncRecipes() async {
     print('📋 레시피 데이터 동기화 시작...');
 
-    final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('recipes');
+    final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('recipes') ?? '1970-01-01';
     print('📅 레시피 마지막 갱신일: $lastUpdatedAt');
 
     final recipesData = await api.getRecipes(lastUpdatedAt);
@@ -197,47 +228,43 @@ class PreloadData {
     print('✅ 레시피 데이터 동기화 완료: ${recipesData.length}개 조합');
   }
 
-  // static Future<void> _syncInventory() async {
-  //   print('🎒 인벤토리 데이터 동기화 시작...');
+  Future<void> _syncInventory(String userId) async {
+    print('🎒 인벤토리 데이터 동기화 시작... (Hive → Supabase)');
 
-  //   final lastUpdatedAt = HiveHelper.instance.getLastUpdatedAt('inventory');
-  //   print('📅 마지막 갱신일: $lastUpdatedAt');
+    // Hive에서 획득한 음식들 조회
+    final acquiredFoods = HiveHelper.instance.getAcquiredFoods();
+    print('📋 Hive에서 획득한 음식 ${acquiredFoods.length}개 발견');
 
-  //   final api = SupabaseApi();
-  //   final inventoryData = await api.getInventory(lastUpdatedAt);
+    if (acquiredFoods.isEmpty) {
+      print('✅ 동기화할 인벤토리 데이터가 없습니다.');
+      return;
+    }
 
-  //   if (inventoryData.isEmpty) {
-  //     print('✅ 새로운 인벤토리 데이터가 없습니다.');
-  //     return;
-  //   }
+    // Supabase에 upsert할 데이터 준비
+    final List<Map<String, dynamic>> inventoryData = [];
+    
+    for (final food in acquiredFoods) {
+      if (food.acquiredAt != null) {
+        inventoryData.add({
+          'user_id': userId,
+          'food_id': food.id,
+          'acquired_at': food.acquiredAt!.toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        print('📦 인벤토리 데이터 준비: 음식 ${food.id} (${food.name}) - ${food.acquiredAt}');
+      }
+    }
 
-  //   print('🔄 ${inventoryData.length}개의 인벤토리 데이터 처리 중...');
-
-  //   String latestUpdatedAt = lastUpdatedAt;
-
-  //   for (final item in inventoryData) {
-  //     final int foodId = item['food_id'];
-  //     final DateTime acquiredAt = DateTime.parse(item['acquired_at']);
-  //     final String updatedAt = item['updated_at'];
-
-  //     // 음식의 획득 시간 업데이트
-  //     await HiveHelper.instance.updateFoodAcquiredAt(foodId, acquiredAt);
-  //     print('🎒 음식 $foodId 획득 시간 업데이트: $acquiredAt');
-
-  //     // 최신 갱신일 추적
-  //     if (updatedAt.compareTo(latestUpdatedAt) > 0) {
-  //       latestUpdatedAt = updatedAt;
-  //     }
-  //   }
-
-  //   // 마지막 갱신일 업데이트
-  //   if (latestUpdatedAt != lastUpdatedAt) {
-  //     await HiveHelper.instance.setLastUpdatedAt('inventory', latestUpdatedAt);
-  //     print('📅 인벤토리 마지막 갱신일 업데이트: $latestUpdatedAt');
-  //   }
-
-  //   print('✅ 인벤토리 데이터 동기화 완료: ${inventoryData.length}개');
-  // }
+    // Supabase에 upsert
+    try {
+      final api = SupabaseApi();
+      final result = await api.upsertInventory(inventoryData);
+      print('✅ 인벤토리 데이터 upsert 완료: ${inventoryData.length}개');
+      print('📊 Upsert 결과: $result');
+    } catch (e) {
+      print('❌ 인벤토리 데이터 upsert 실패: $e');
+    }
+  }
 }
 
 // 스크립트 실행용 main 함수

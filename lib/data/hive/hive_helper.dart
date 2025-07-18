@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/food.dart';
+import 'dart:convert';
 
 class HiveHelper {
   static final HiveHelper instance = HiveHelper._internal();
@@ -18,8 +19,8 @@ class HiveHelper {
   }
 
   // Metadata management for last updated_at times
-  String getLastUpdatedAt(String tableName) {
-    return _metadataBox?.get('last_updated_$tableName') ?? '1970-01-01';
+  String? getLastUpdatedAt(String tableName) {
+    return _metadataBox?.get('last_updated_$tableName');
   }
 
   Future<void> resetMetadata(String boxName) async {
@@ -32,6 +33,36 @@ class HiveHelper {
 
   String? getUserId() {
     return _metadataBox?.get('uuid');
+  }
+
+  // Save user info
+  Future<void> saveUserInfo(Map<String, dynamic> userInfo) async {
+    // UUID 저장 (문자열로 변환)
+    if (userInfo['uuid'] != null) {
+      await _metadataBox?.put('uuid', userInfo['uuid'].toString());
+    }
+    
+    // 전체 사용자 정보를 JSON으로 저장
+    final userInfoJson = jsonEncode(userInfo);
+    await _metadataBox?.put('user_info', userInfoJson);
+    
+    print('✅ 사용자 정보 저장 완료: ${userInfo['uuid']}');
+  }
+
+  // Get user info
+  Map<String, dynamic>? getUserInfo() {
+    final userInfoJson = _metadataBox?.get('user_info');
+    if (userInfoJson != null) {
+      try {
+        // JSON을 Map으로 변환
+        final userInfo = jsonDecode(userInfoJson) as Map<String, dynamic>;
+        return userInfo;
+      } catch (e) {
+        print('❌ 사용자 정보 파싱 실패: $e');
+        return {};
+      }
+    }
+    return {};
   }
 
   // Get all foods

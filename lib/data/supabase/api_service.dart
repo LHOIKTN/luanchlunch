@@ -6,6 +6,12 @@ class SupabaseApi {
     return response[0];
   }
 
+  Future<Map<String, dynamic>> getUserInfo(String userId, String lastUpdatedAt) async {
+    final response = await supabase.from('users').select().eq('id', userId).gt('updated_at', lastUpdatedAt);
+    print(response);
+    return response[0];
+  }
+
   /// 오늘 날짜의 메뉴,재료 가져오기
   Future<Map<String, dynamic>> getMenusByDate(String date) async {
     final response = await supabase
@@ -133,6 +139,35 @@ class SupabaseApi {
         .gte('updated_at', updatedAt)
         .order("food_id", ascending: true);
     return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Upsert inventory data to Supabase
+  Future<Map<String, dynamic>> upsertInventory(List<Map<String, dynamic>> inventoryData) async {
+    try {
+      print('🔄 인벤토리 데이터 upsert 시작: ${inventoryData.length}개');
+      
+      // upsert 실행 (user_id, food_id가 복합 키라고 가정)
+      final response = await supabase
+          .from('inventory')
+          .upsert(
+            inventoryData,
+            onConflict: 'user_id,food_id', // 복합 키 충돌 시 업데이트
+          )
+          .select();
+      
+      print('✅ 인벤토리 upsert 성공: ${response.length}개 처리됨');
+      return {
+        'success': true,
+        'processed_count': response.length,
+        'data': response,
+      };
+    } catch (e) {
+      print('❌ 인벤토리 upsert 실패: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
   }
 
   //   /// 메뉴 UUID를 기반으로 메뉴명, 재료 UUID 가져오기
