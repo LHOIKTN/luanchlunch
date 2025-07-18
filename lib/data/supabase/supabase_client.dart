@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'supabase_keys.dart';
+import 'supabase_keys.dart'; 
+import 'http_client.dart';  // 개발 환경용 SSL 검증 완화
+
+
+
 
 late final SupabaseClient supabase;
 bool _isInitialized = false;
@@ -17,11 +21,12 @@ Future<void> initSupabase() async {
   if (supabaseUrl == null || supabaseAnonKey == null) {
     throw Exception('Supabase URL 또는 Anon Key가 설정되지 않았습니다.');
   }
-  
+  final httpClient = getInsecureHttpClient();
   // Initialize Supabase with custom options
   await Supabase.initialize(
     url: supabaseUrl!,
     anonKey: supabaseAnonKey!,
+    httpClient: httpClient,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
     ),

@@ -31,8 +31,6 @@ class FoodGridItem extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Builder(
                 builder: (context) {
-                  // 이미지 경로 로그 출력
-                  print('🖼️ 이미지 로드 시도: ${food.imageUrl}');
                   
                   // 파일 존재 여부 확인 (로컬 파일인 경우)
                   if (food.imageUrl.startsWith('/')) {

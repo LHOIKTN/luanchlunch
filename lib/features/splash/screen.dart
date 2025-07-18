@@ -1,41 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:launchlunch/data/supabase/api_service.dart';
-import 'package:launchlunch/data/supabase/supabase_client.dart';
-import 'package:intl/intl.dart';
-import 'package:launchlunch/utils/download_image.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:launchlunch/features/inventory/screen.dart';
-import 'package:launchlunch/utils/preload.dart';
-import 'package:launchlunch/data/hive/hive_helper.dart';
-import 'package:launchlunch/features/splash/screen.dart';
-import 'package:launchlunch/features/home/screen.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  await initSupabase();
-  await HiveHelper.instance.init();
-
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Launch Lunch',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        primaryColor: const Color(0xFF4CAF50),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-      ),
-      home: const SplashScreen(),
-    );
-  }
-}
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -50,7 +13,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -89,34 +51,6 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     _fadeController.forward();
     _scaleController.forward();
-    _startPreload(); // 애니메이션과 동시에 로딩 시작
-  }
-
-  void _startPreload() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      print('데이터프리로드 실행');
-      final preloader = PreloadData();
-      await preloader.preloadAllData();
-      
-      // 프리로드 완료 후 홈 화면으로 이동
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    } catch (e) {
-      print('프리로드 실패: $e');
-      // 에러가 발생해도 홈 화면으로 이동
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    }
   }
 
   @override
@@ -197,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                 return Opacity(
                   opacity: _fadeAnimation.value,
                   child: const Text(
-                    '한입두입',
+                    '맛있는 점심을 찾아보세요',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -216,27 +150,13 @@ class _SplashScreenState extends State<SplashScreen>
               builder: (context, child) {
                 return Opacity(
                   opacity: _fadeAnimation.value,
-                  child: Column(
-                    children: [
-                      const SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
-                        ),
-                      ),
-                      if (_isLoading) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          '데이터를 불러오는 중...',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                    ),
                   ),
                 );
               },
