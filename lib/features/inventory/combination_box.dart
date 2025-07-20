@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:launchlunch/models/food.dart';
 import 'package:collection/collection.dart';
 import 'dart:io';
+import 'package:launchlunch/theme/app_colors.dart';
 
 class CombinationBox extends StatelessWidget {
   final List<Food> selectedFoods;
@@ -27,7 +28,7 @@ class CombinationBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      color: Colors.grey.shade100,
+      color: AppColors.background,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -44,16 +45,16 @@ class CombinationBox extends StatelessWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: AppColors.secondaryLight,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200),
+                      border: Border.all(color: AppColors.secondary),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        food.imageUrl.startsWith('assets/') 
-                          ? Image.asset(food.imageUrl, height: 32)
-                          : Image.file(File(food.imageUrl), height: 32),
+                        food.imageUrl.startsWith('assets/')
+                            ? Image.asset(food.imageUrl, height: 32)
+                            : Image.file(File(food.imageUrl), height: 32),
                       ],
                     ),
                   ),
@@ -64,9 +65,9 @@ class CombinationBox extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: AppColors.borderMedium),
                   ),
                   child: Image.asset(
                     'assets/images/cooking.png',
@@ -85,7 +86,8 @@ class CombinationBox extends StatelessWidget {
                 Food? matchedRecipe;
                 if (canCombine) {
                   // 조합된 재료 id 리스트
-                  final selectedIds = selectedFoods.map((f) => f.id).toList()..sort();
+                  final selectedIds = selectedFoods.map((f) => f.id).toList()
+                    ..sort();
                   for (final food in allFoods) {
                     if (food.recipes != null) {
                       final recipeIds = List<int>.from(food.recipes!)..sort();
@@ -106,13 +108,14 @@ class CombinationBox extends StatelessWidget {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green),
+                        border: Border.all(color: AppColors.primary),
                       ),
-                      child: matchedRecipe.imageUrl.startsWith('assets/') 
-                        ? Image.asset(matchedRecipe.imageUrl, height: 48)
-                        : Image.file(File(matchedRecipe.imageUrl), height: 48),
+                      child: matchedRecipe.imageUrl.startsWith('assets/')
+                          ? Image.asset(matchedRecipe.imageUrl, height: 48)
+                          : Image.file(File(matchedRecipe.imageUrl),
+                              height: 48),
                     );
                   } else {
                     // X 표시
@@ -122,13 +125,13 @@ class CombinationBox extends StatelessWidget {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red),
+                          border: Border.all(color: AppColors.error),
                         ),
                         child: const Icon(
                           Icons.close,
-                          color: Colors.red,
+                          color: AppColors.error,
                           size: 40,
                         ),
                       ),
@@ -146,7 +149,7 @@ class CombinationBox extends StatelessWidget {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.lightBlue[100],
+                        color: AppColors.secondaryLight,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Image.asset(
@@ -167,10 +170,26 @@ class CombinationBox extends StatelessWidget {
                     ),
                     child: ColorFiltered(
                       colorFilter: const ColorFilter.matrix(<double>[
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0, 0, 0, 1, 0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
                       ]),
                       child: Image.asset(
                         'assets/images/cooking.png',
@@ -187,4 +206,4 @@ class CombinationBox extends StatelessWidget {
       ),
     );
   }
-} 
+}

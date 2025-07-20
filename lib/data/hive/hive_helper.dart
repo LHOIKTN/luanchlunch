@@ -78,16 +78,6 @@ class HiveHelper {
     return _foodBox?.values.toList() ?? [];
   }
 
-  // Get food by ID
-  Food? getFoodById(int id) {
-    return _foodBox?.get(id);
-  }
-
-  // Save or update food
-  Future<void> saveFood(Food food) async {
-    await _foodBox?.put(food.id, food);
-  }
-
   // Save multiple foods
   Future<void> saveFoods(List<Food> foods) async {
     final Map<int, Food> foodMap = {for (var food in foods) food.id: food};
@@ -118,35 +108,6 @@ class HiveHelper {
         [];
   }
 
-  // Get foods that can be crafted (have recipes)
-  List<Food> getCraftableFoods() {
-    return _foodBox?.values
-            .where((food) => food.recipes != null && food.recipes!.isNotEmpty)
-            .toList() ??
-        [];
-  }
-
-  // Check if user can craft a specific food
-  bool canCraftFood(int foodId, List<int> userInventory) {
-    final food = _foodBox?.get(foodId);
-    if (food?.recipes == null) return false;
-
-    for (final requiredId in food!.recipes!) {
-      if (!userInventory.contains(requiredId)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // Get all craftable foods with current inventory
-  List<Food> getAvailableCrafts(List<int> userInventory) {
-    final craftableFoods = getCraftableFoods();
-    return craftableFoods
-        .where((food) => canCraftFood(food.id, userInventory))
-        .toList();
-  }
-
   // DailyMeal 관련 메서드들
 
   // 모든 급식 데이터 가져오기
@@ -157,19 +118,6 @@ class HiveHelper {
   // 특정 날짜의 급식 데이터 가져오기
   DailyMeal? getMealByDate(String mealDate) {
     return _mealBox?.get(mealDate);
-  }
-
-  // 급식 데이터 저장 또는 업데이트
-  Future<void> saveMeal(DailyMeal meal) async {
-    await _mealBox?.put(meal.mealDate, meal);
-  }
-
-  // 여러 급식 데이터 저장
-  Future<void> saveMeals(List<DailyMeal> meals) async {
-    final Map<String, DailyMeal> mealMap = {
-      for (var meal in meals) meal.mealDate: meal
-    };
-    await _mealBox?.putAll(mealMap);
   }
 
   // 급식 데이터 upsert (있으면 업데이트, 없으면 추가)
@@ -206,41 +154,6 @@ class HiveHelper {
     return meals.first.mealDate;
   }
 
-  // 급식 데이터 삭제
-  Future<void> deleteMeal(String mealDate) async {
-    await _mealBox?.delete(mealDate);
-  }
-
-  // 모든 급식 데이터 삭제
-  Future<void> clearAllMeals() async {
-    await _mealBox?.clear();
-  }
-
-  // Clear all data
-  Future<void> clearAll() async {
-    await _foodBox?.clear();
-    await _metadataBox?.clear();
-  }
-
-  // Clear specific table's last updated time
-  Future<void> clearLastUpdatedAt(String tableName) async {
-    await _metadataBox?.delete('last_updated_${tableName}');
-    print('🗑️ $tableName 테이블의 마지막 갱신 시간 초기화됨');
-  }
-
-  // Reset all last updated times to default
-  Future<void> resetAllLastUpdatedAt() async {
-    await _metadataBox?.clear();
-    print('🗑️ 모든 테이블의 마지막 갱신 시간 초기화됨');
-  }
-
-  // Close database
-  Future<void> close() async {
-    await _foodBox?.close();
-    await _metadataBox?.close();
-    await _userBox?.close();
-  }
-
   // 닉네임 관련 메서드들
 
   // 닉네임 저장
@@ -252,12 +165,6 @@ class HiveHelper {
   // 닉네임 가져오기
   String getNickname() {
     return _userBox?.get('nickname', defaultValue: '') ?? '';
-  }
-
-  // 닉네임 삭제
-  Future<void> deleteNickname() async {
-    await _userBox?.delete('nickname');
-    print('🗑️ 닉네임 삭제 완료');
   }
 
   // 기본 재료들 (쌀, 소금, 설탕, 참기름) 자동 획득

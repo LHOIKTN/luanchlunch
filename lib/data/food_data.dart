@@ -10,11 +10,9 @@ class FoodDataManager {
 
   List<Food> _allFoods = [];
   List<Food> _availableFoods = [];
-  Set<int> _ownedRecipeIds = {};
 
   List<Food> get allFoods => _allFoods;
   List<Food> get availableFoods => _availableFoods;
-  Set<int> get ownedRecipeIds => _ownedRecipeIds;
 
   /// Hive에서 음식 데이터를 로드합니다.
   Future<void> loadFoodsFromHive() async {
@@ -36,10 +34,8 @@ class FoodDataManager {
     }
   }
 
-  /// 레시피를 완성했을 때 호출
+    /// 레시피를 완성했을 때 호출
   Future<void> addCompletedRecipe(Food recipe) async {
-    _ownedRecipeIds.add(recipe.id);
-
     // Hive에 획득 상태 저장
     await HiveHelper.instance.updateFoodAcquiredAt(recipe.id, DateTime.now());
 

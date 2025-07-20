@@ -5,6 +5,8 @@ import 'package:launchlunch/models/meal.dart';
 import 'package:launchlunch/models/food.dart';
 import 'package:launchlunch/widgets/common/food_chip.dart';
 import 'package:launchlunch/features/profile/screen.dart';
+import 'package:launchlunch/features/ranking/screen.dart';
+import 'package:launchlunch/theme/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const _HomeTab(),
     const FoodGridScreen(),
-    const _RankingTab(),
+    const RankingScreen(),
     const ProfileScreen(),
   ];
 
@@ -31,8 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: const Color(0xFF4CAF50),
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textHint,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
           BottomNavigationBarItem(icon: Icon(Icons.inventory), label: '조합'),
@@ -53,57 +55,19 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  late PageController _pageController;
-  late DateTime _currentDate;
-  int _currentPage = 1000; // 중앙에서 시작하기 위한 큰 값
-
-  @override
-  void initState() {
-    super.initState();
-    _currentDate = DateTime.now();
-    _pageController = PageController(initialPage: _currentPage);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onPageChanged(int page) {
-    setState(() {
-      _currentPage = page;
-      _currentDate = DateTime.now().add(Duration(days: page - _currentPage));
-    });
-  }
-
-  String _getDateString(DateTime date) {
-    return '${date.month}월 ${date.day}일';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: PageView.builder(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          itemBuilder: (context, index) {
-            final date =
-                DateTime.now().add(Duration(days: index - _currentPage));
-            return _DailyMenuPage(date: date);
-          },
-        ),
+        child: const _DailyMenuPage(),
       ),
     );
   }
 }
 
 class _DailyMenuPage extends StatefulWidget {
-  final DateTime date;
-
-  const _DailyMenuPage({required this.date});
+  const _DailyMenuPage();
 
   @override
   State<_DailyMenuPage> createState() => _DailyMenuPageState();
@@ -124,16 +88,49 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   }
 
   void _loadAvailableDates() {
-    // Hive에서 사용 가능한 급식 날짜들 가져오기
+    // Hive에서 모든 급식 데이터를 리스트로 불러오기
     final allMeals = HiveHelper.instance.getAllMeals();
-    _availableDates = allMeals.map((meal) => meal.mealDate).toList();
-    _availableDates.sort((a, b) => b.compareTo(a)); // 날짜순 정렬 (최신 날짜가 앞으로)
+    print('📊 초기 Hive 급식 데이터: ${allMeals.length}개');
+    for (final meal in allMeals) {
+      print(
+          '  - ${meal.mealDate}: 메뉴 ${meal.menus.length}개, 음식 ${meal.foods.length}개');
+    }
 
-    // 오늘 날짜가 있는지 확인하고 인덱스 설정
+    // 실제 오늘 날짜 (한국 시간)
+    final today =
+        DateTime.now().toUtc().add(const Duration(hours: 9)); // UTC+9 (한국 시간)
     final todayDate =
-        '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
-    final todayIndex = _availableDates.indexOf(todayDate);
-    _currentDateIndex = todayIndex >= 0 ? todayIndex : 0;
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    print('📅 오늘 날짜 (한국 시간): $todayDate');
+
+    // 오늘 날짜가 있는지 확인
+    final todayMeal =
+        allMeals.where((meal) => meal.mealDate == todayDate).firstOrNull;
+
+    if (todayMeal == null) {
+      // 오늘 날짜가 없으면 빈 급식 객체 추가
+      final emptyTodayMeal = DailyMeal(
+        mealDate: todayDate,
+        menus: [],
+        foods: [],
+      );
+      allMeals.add(emptyTodayMeal);
+      print('➕ 오늘 날짜 빈 급식 객체 추가: $todayDate');
+    } else {
+      print('✅ 오늘 날짜 급식 데이터 존재: $todayDate');
+    }
+
+    // meal_date 순으로 정렬 (가장 빠른 날짜가 앞으로)
+    allMeals.sort((a, b) => a.mealDate.compareTo(b.mealDate));
+    print('🔄 날짜순 정렬 완료 (가장 빠른 날짜가 인덱스 0)');
+
+    // 날짜 리스트 생성
+    _availableDates = allMeals.map((meal) => meal.mealDate).toList();
+    print('📋 최종 날짜 리스트: $_availableDates');
+
+    // 오늘 날짜의 인덱스 찾기
+    _currentDateIndex = _availableDates.indexOf(todayDate);
+    print('🎯 오늘 날짜 인덱스: $_currentDateIndex (날짜: $todayDate)');
   }
 
   Future<void> _loadMealData() async {
@@ -143,84 +140,80 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
 
     try {
       // 현재 선택된 날짜의 급식 데이터 가져오기
-      String targetDate;
       if (_availableDates.isNotEmpty &&
           _currentDateIndex < _availableDates.length) {
-        targetDate = _availableDates[_currentDateIndex];
-      } else {
-        targetDate =
-            '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
-      }
+        final targetDate = _availableDates[_currentDateIndex];
+        print('🔍 조회할 날짜: $targetDate');
+        final todayMeal = HiveHelper.instance.getMealByDate(targetDate);
 
-      print('🔍 조회할 날짜: $targetDate');
-      final todayMeal = HiveHelper.instance.getMealByDate(targetDate);
+        // Hive 데이터 디버깅
+        print('📊 Hive 데이터 확인:');
+        final allMeals = HiveHelper.instance.getAllMeals();
+        print('  - 전체 급식 데이터: ${allMeals.length}개');
+        for (final meal in allMeals.take(3)) {
+          print(
+              '    * ${meal.mealDate}: 메뉴 ${meal.menus.length}개, 음식 ${meal.foods.length}개');
+        }
 
-      // Hive 데이터 디버깅
-      print('📊 Hive 데이터 확인:');
-      final allMeals = HiveHelper.instance.getAllMeals();
-      print('  - 전체 급식 데이터: ${allMeals.length}개');
-      for (final meal in allMeals.take(3)) {
-        print(
-            '    * ${meal.mealDate}: 메뉴 ${meal.menus.length}개, 음식 ${meal.foods.length}개');
-      }
+        if (todayMeal != null) {
+          print('✅ 오늘 급식 데이터 발견:');
+          print('  - 메뉴: ${todayMeal.menus}');
+          print('  - 음식 ID들: ${todayMeal.foods}');
+        } else {
+          print('❌ 오늘 급식 데이터 없음');
+        }
 
-      if (todayMeal != null) {
-        print('✅ 오늘 급식 데이터 발견:');
-        print('  - 메뉴: ${todayMeal.menus}');
-        print('  - 음식 ID들: ${todayMeal.foods}');
-      } else {
-        print('❌ 오늘 급식 데이터 없음');
-      }
+        // 획득 가능한 재료들 가져오기
+        final allFoods = HiveHelper.instance.getAllFoods();
+        print('🍽️ 전체 음식 데이터: ${allFoods.length}개');
 
-      // 획득 가능한 재료들 가져오기
-      final allFoods = HiveHelper.instance.getAllFoods();
-      print('🍽️ 전체 음식 데이터: ${allFoods.length}개');
+        // 획득한 음식들 확인
+        final acquiredFoods =
+            allFoods.where((food) => food.acquiredAt != null).toList();
+        print('✅ 획득한 음식들: ${acquiredFoods.length}개');
+        for (final food in acquiredFoods.take(5)) {
+          print(
+              '  * ID: ${food.id}, 이름: ${food.name}, 획득일: ${food.acquiredAt}');
+        }
 
-      // 획득한 음식들 확인
-      final acquiredFoods =
-          allFoods.where((food) => food.acquiredAt != null).toList();
-      print('✅ 획득한 음식들: ${acquiredFoods.length}개');
-      for (final food in acquiredFoods.take(5)) {
-        print('  * ID: ${food.id}, 이름: ${food.name}, 획득일: ${food.acquiredAt}');
-      }
+        final availableFoods = <Food>[];
 
-      final availableFoods = <Food>[];
+        if (todayMeal != null) {
+          print('🔍 급식 음식 ID들과 획득 가능한 음식 매칭:');
+          // 해당 날짜 급식에 포함된 모든 음식들을 추가 (획득 여부와 관계없이)
+          for (final foodId in todayMeal.foods) {
+            print('  - 음식 ID $foodId 검색 중...');
+            final food = allFoods.firstWhere(
+              (f) => f.id == foodId,
+              orElse: () {
+                print('    ❌ ID $foodId 음식을 찾을 수 없음');
+                return Food(id: foodId, name: '알 수 없는 음식', imageUrl: '');
+              },
+            );
 
-      if (todayMeal != null) {
-        print('🔍 급식 음식 ID들과 획득 가능한 음식 매칭:');
-        // 해당 날짜 급식에 포함된 모든 음식들을 추가 (획득 여부와 관계없이)
-        for (final foodId in todayMeal.foods) {
-          print('  - 음식 ID $foodId 검색 중...');
-          final food = allFoods.firstWhere(
-            (f) => f.id == foodId,
-            orElse: () {
-              print('    ❌ ID $foodId 음식을 찾을 수 없음');
-              return Food(id: foodId, name: '알 수 없는 음식', imageUrl: '');
-            },
-          );
+            print('    ✅ 음식 발견: ${food.name} (획득일: ${food.acquiredAt})');
 
-          print('    ✅ 음식 발견: ${food.name} (획득일: ${food.acquiredAt})');
-
-          // 획득 여부와 관계없이 모든 음식 추가
-          availableFoods.add(food);
-          if (food.acquiredAt != null) {
-            print('    🎉 이미 획득한 음식');
-          } else {
-            print('    ⚠️ 아직 획득하지 않은 음식 (획득 가능)');
+            // 획득 여부와 관계없이 모든 음식 추가
+            availableFoods.add(food);
+            if (food.acquiredAt != null) {
+              print('    🎉 이미 획득한 음식');
+            } else {
+              print('    ⚠️ 아직 획득하지 않은 음식 (획득 가능)');
+            }
           }
         }
-      }
 
-      print('📋 최종 availableFoods: ${availableFoods.length}개');
-      for (final food in availableFoods) {
-        print('  - ${food.name} (ID: ${food.id})');
-      }
+        print('📋 최종 availableFoods: ${availableFoods.length}개');
+        for (final food in availableFoods) {
+          print('  - ${food.name} (ID: ${food.id})');
+        }
 
-      setState(() {
-        _todayMeal = todayMeal;
-        _availableFoods = availableFoods;
-        _isLoading = false;
-      });
+        setState(() {
+          _todayMeal = todayMeal;
+          _availableFoods = availableFoods;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('❌ 급식 데이터 로드 실패: $e');
       print('❌ 에러 상세: ${e.toString()}');
@@ -231,20 +224,48 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   }
 
   void _onSwipeLeft() {
-    if (_currentDateIndex > 0) {
+    // 왼쪽 스와이프: 다음 날짜로 (미래)
+    if (_currentDateIndex < _availableDates.length - 1) {
+      final oldIndex = _currentDateIndex;
+      final oldDate = _availableDates[oldIndex];
+
       setState(() {
-        _currentDateIndex--;
+        _currentDateIndex++;
       });
+
+      final newIndex = _currentDateIndex;
+      final newDate = _availableDates[newIndex];
+
+      print('🔄 왼쪽 스와이프: $oldDate (인덱스 $oldIndex) → $newDate (인덱스 $newIndex)');
+      print('📅 전체 날짜 리스트: $_availableDates');
+      print('🎯 현재 선택된 인덱스: $_currentDateIndex');
+
       _loadMealData();
+    } else {
+      print('⚠️ 왼쪽 스와이프: 이미 가장 최신 날짜입니다 (인덱스 $_currentDateIndex)');
     }
   }
 
   void _onSwipeRight() {
-    if (_currentDateIndex < _availableDates.length - 1) {
+    // 오른쪽 스와이프: 이전 날짜로 (과거)
+    if (_currentDateIndex > 0) {
+      final oldIndex = _currentDateIndex;
+      final oldDate = _availableDates[oldIndex];
+
       setState(() {
-        _currentDateIndex++;
+        _currentDateIndex--;
       });
+
+      final newIndex = _currentDateIndex;
+      final newDate = _availableDates[newIndex];
+
+      print('🔄 오른쪽 스와이프: $oldDate (인덱스 $oldIndex) → $newDate (인덱스 $newIndex)');
+      print('📅 전체 날짜 리스트: $_availableDates');
+      print('🎯 현재 선택된 인덱스: $_currentDateIndex');
+
       _loadMealData();
+    } else {
+      print('⚠️ 오른쪽 스와이프: 이미 가장 오래된 날짜입니다 (인덱스 $_currentDateIndex)');
     }
   }
 
@@ -258,10 +279,16 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
         final month = int.parse(dateParts[1]);
         final day = int.parse(dateParts[2]);
         final date = DateTime(year, month, day);
-        return _getDateString(date);
+        final result = _getDateString(date);
+        print(
+            '📱 화면에 표시되는 날짜: $result (원본: $dateStr, 인덱스: $_currentDateIndex)');
+        return result;
       }
     }
-    return _getDateString(widget.date);
+    final fallback =
+        _getDateString(DateTime.now().toUtc().add(const Duration(hours: 9)));
+    print('⚠️ 화면에 표시되는 날짜 (fallback, 한국 시간): $fallback');
+    return fallback;
   }
 
   String _getDateString(DateTime date) {
@@ -276,58 +303,27 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
           ? const Center(child: CircularProgressIndicator())
           : GestureDetector(
               onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity! > 0) {
+                print('🖐️ 스와이프 감지: velocity = ${details.primaryVelocity}');
+                if (details.primaryVelocity! > 100) {
                   // 오른쪽으로 스와이프 (이전 날짜)
+                  print('➡️ 오른쪽 스와이프 감지');
                   _onSwipeRight();
-                } else if (details.primaryVelocity! < 0) {
+                } else if (details.primaryVelocity! < -100) {
                   // 왼쪽으로 스와이프 (다음 날짜)
+                  print('⬅️ 왼쪽 스와이프 감지');
                   _onSwipeLeft();
                 }
               },
+              behavior: HitTestBehavior.opaque, // 전체 영역에서 터치 감지
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 날짜 표시
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getCurrentDateString(),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${widget.date.year}년 ${widget.date.month}월 ${widget.date.day}일',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
                     // 오늘의 급식 정보
-                    const Text(
-                      '급식 메뉴',
-                      style: TextStyle(
+                    Text(
+                      '${_getCurrentDateString()} 급식 메뉴',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -360,7 +356,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
                                   child: Row(
                                     children: [
                                       const Icon(Icons.restaurant,
-                                          color: Color(0xFF4CAF50), size: 20),
+                                          color: AppColors.primary, size: 20),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -413,7 +409,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF4CAF50),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -479,7 +475,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
                           ],
                         ),
                         child: const Text(
-                          '오늘은 급식이 없습니다.',
+                          '이 날짜에는 급식이 없습니다.',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey,
@@ -492,57 +488,6 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
                 ),
               ),
             ),
-    );
-  }
-}
-
-// 랭킹 탭
-class _RankingTab extends StatelessWidget {
-  const _RankingTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          '랭킹',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        elevation: 0,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.emoji_events,
-              size: 80,
-              color: Color(0xFF4CAF50),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '랭킹 기능 준비 중입니다',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '곧 만나보실 수 있어요!',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

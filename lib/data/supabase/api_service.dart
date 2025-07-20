@@ -17,33 +17,6 @@ class SupabaseApi {
     return response[0];
   }
 
-  /// 오늘 날짜의 메뉴,재료 가져오기
-  Future<Map<String, dynamic>> getMenusByDate(String date) async {
-    final response = await supabase
-        .from('meals')
-        .select('*, menus(name, foods(*))')
-        .eq('meal_date', date);
-
-    final menus = <String>[];
-    final foodSet = <int, Map<String, dynamic>>{};
-
-    for (final item in response) {
-      final menu = item['menus'];
-      if (menu == null) continue;
-
-      if (menu['name'] != null) {
-        menus.add(menu['name']);
-      }
-
-      final food = menu['foods'];
-      if (food != null && food['id'] != null) {
-        foodSet[food['id']] = food;
-      }
-    }
-
-    return {'meal_date': date, "menus": menus, 'food': foodSet.values.toList()};
-  }
-
   // Updated to use updated_at for incremental sync
   Future<List<Map<String, dynamic>>> getFoodDatas(String updatedAt) async {
     int retryCount = 0;
@@ -73,30 +46,6 @@ class SupabaseApi {
     }
 
     throw Exception('음식 데이터 요청 실패');
-  }
-
-  // Legacy method for backward compatibility
-  Future<List<Map<String, dynamic>>> getFoodDatasById(int lastFoodId) async {
-    final response = await supabase
-        .from('foods')
-        .select('*')
-        .gt('id', lastFoodId) // id > lastFoodId
-        .order("id", ascending: true);
-
-    return List<Map<String, dynamic>>.from(response);
-  }
-
-  Future<List<Map<String, dynamic>>> getLatestRecies(int lastRecipeId) async {
-    print(lastRecipeId);
-    final test = await supabase.from('recipes').select('*');
-    print(test);
-
-    final response = await supabase
-        .from('recipes')
-        .select('id, result_id, required_id')
-        .gt('id', lastRecipeId)
-        .order("id", ascending: true);
-    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<List<Map<String, dynamic>>> getRecipes(String updatedAt) async {
@@ -274,6 +223,44 @@ class SupabaseApi {
         'success': false,
         'error': e.toString(),
       };
+    }
+  }
+
+  // Get ranking data with pagination
+  Future<List<Map<String, dynamic>>> getRanking(
+      {int? limit, int? offset}) async {
+    try {
+      var query =
+          supabase.from('ranking').select('*').order('rank', ascending: true);
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      if (offset != null) {
+        query = query.range(offset, offset + (limit ?? 20) - 1);
+      }
+
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ 랭킹 데이터 요청 실패: $e');
+      rethrow;
+    }
+  }
+
+  // Get user's own ranking
+  Future<Map<String, dynamic>?> getUserRanking(String userUUID) async {
+    try {
+      final response = await supabase
+          .from('ranking')
+          .select('*')
+          .eq('uuid', userUUID)
+          .single();
+
+      return response;
+    } catch (e) {
+      print('❌ 사용자 랭킹 조회 실패: $e');
+      return null;
     }
   }
 }

@@ -10,6 +10,7 @@ import 'package:launchlunch/utils/preload.dart';
 import 'package:launchlunch/data/hive/hive_helper.dart';
 import 'package:launchlunch/features/splash/screen.dart';
 import 'package:launchlunch/features/home/screen.dart';
+import 'package:launchlunch/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Launch Lunch',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        primaryColor: const Color(0xFF4CAF50),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-      ),
+      theme: AppTheme.lightTheme,
       home: const SplashScreen(),
     );
   }
@@ -55,12 +52,12 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -101,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
       print('데이터프리로드 실행');
       final preloader = PreloadData();
       await preloader.preloadAllData();
-      
+
       // 프리로드 완료 후 홈 화면으로 이동
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -166,9 +163,9 @@ class _SplashScreenState extends State<SplashScreen>
                 );
               },
             ),
-            
+
             const SizedBox(height: 40),
-            
+
             // 앱 이름
             AnimatedBuilder(
               animation: _fadeAnimation,
@@ -187,9 +184,9 @@ class _SplashScreenState extends State<SplashScreen>
                 );
               },
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // 부제목
             AnimatedBuilder(
               animation: _fadeAnimation,
@@ -207,9 +204,9 @@ class _SplashScreenState extends State<SplashScreen>
                 );
               },
             ),
-            
+
             const SizedBox(height: 60),
-            
+
             // 로딩 인디케이터
             AnimatedBuilder(
               animation: _fadeAnimation,
@@ -223,7 +220,8 @@ class _SplashScreenState extends State<SplashScreen>
                         height: 40,
                         child: CircularProgressIndicator(
                           strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
                         ),
                       ),
                       if (_isLoading) ...[

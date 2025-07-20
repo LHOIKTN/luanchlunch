@@ -30,16 +30,6 @@ class PreloadData {
     }
   }
 
-  /// assets에 이미지가 있는지 확인하는 함수
-  static Future<bool> _isAssetAvailable(String assetPath) async {
-    try {
-      await rootBundle.load(assetPath);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<String?> _syncUser() async {
     print('👤 유저 확인 시작...');
     final userUUID = HiveHelper.instance.getUserUUID();
