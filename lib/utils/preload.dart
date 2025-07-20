@@ -63,7 +63,7 @@ class PreloadData {
       }
 
       // 기존 사용자의 모든 획득된 재료 데이터를 Supabase에 동기화
-      await _syncAllAcquiredFoods(userUUID);
+      await syncAllAcquiredFoods(userUUID);
       
       return userUUID;
     }
@@ -314,7 +314,7 @@ class PreloadData {
     }
   }
 
-  Future<void> _syncAllAcquiredFoods(String userUUID) async {
+  Future<void> syncAllAcquiredFoods(String userUUID) async {
     print('🎒 기존 사용자 모든 획득 재료 동기화 시작... (Hive → Supabase)');
 
     // Hive에서 획득한 음식들 조회
@@ -335,7 +335,6 @@ class PreloadData {
           'user_uuid': userUUID,
           'food_id': food.id,
           'acquired_at': food.acquiredAt!.toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
         });
         print(
             '📦 획득 재료 데이터 준비: 음식 ${food.id} (${food.name}) - ${food.acquiredAt}');
@@ -377,7 +376,6 @@ class PreloadData {
           'user_uuid': userUUID,
           'food_id': food.id,
           'acquired_at': food.acquiredAt!.toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
         });
         print(
             '📦 인벤토리 데이터 준비: 음식 ${food.id} (${food.name}) - ${food.acquiredAt}');

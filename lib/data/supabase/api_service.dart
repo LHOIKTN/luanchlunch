@@ -205,7 +205,6 @@ class SupabaseApi {
                 'user_uuid': userUUID,
                 'food_id': foodId,
                 'acquired_at': now,
-                'updated_at': now,
               })
           .toList();
 
