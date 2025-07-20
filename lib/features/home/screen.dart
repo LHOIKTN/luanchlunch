@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:launchlunch/features/inventory/screen.dart';
+import 'package:launchlunch/data/hive/hive_helper.dart';
+import 'package:launchlunch/models/meal.dart';
+import 'package:launchlunch/models/food.dart';
+import 'package:launchlunch/widgets/common/food_chip.dart';
+import 'package:launchlunch/features/profile/screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const _HomeTab(),
     const FoodGridScreen(),
     const _RankingTab(),
-    const _ProfileTab(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -73,440 +78,423 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   String _getDateString(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final targetDate = DateTime(date.year, date.month, date.day);
-    
-    if (targetDate == today) {
-      return '오늘';
-    } else if (targetDate == today.add(const Duration(days: 1))) {
-      return '내일';
-    } else if (targetDate == today.subtract(const Duration(days: 1))) {
-      return '어제';
-    } else {
-      return '${date.month}월 ${date.day}일';
-    }
+    return '${date.month}월 ${date.day}일';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: Text(
-          _getDateString(_currentDate),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+      body: SafeArea(
+        child: PageView.builder(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          itemBuilder: (context, index) {
+            final date =
+                DateTime.now().add(Duration(days: index - _currentPage));
+            return _DailyMenuPage(date: date);
+          },
         ),
-        backgroundColor: const Color(0xFF4CAF50),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('알림 기능 준비 중입니다')),
-              );
-            },
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        itemBuilder: (context, index) {
-          final date = DateTime.now().add(Duration(days: index - _currentPage));
-          return _DailyMenuPage(date: date);
-        },
       ),
     );
   }
 }
 
-class _DailyMenuPage extends StatelessWidget {
+class _DailyMenuPage extends StatefulWidget {
   final DateTime date;
 
   const _DailyMenuPage({required this.date});
 
-  String _getDateString(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final targetDate = DateTime(date.year, date.month, date.day);
-    
-    if (targetDate == today) {
-      return '오늘';
-    } else if (targetDate == today.add(const Duration(days: 1))) {
-      return '내일';
-    } else if (targetDate == today.subtract(const Duration(days: 1))) {
-      return '어제';
-    } else {
-      return '${date.month}월 ${date.day}일';
+  @override
+  State<_DailyMenuPage> createState() => _DailyMenuPageState();
+}
+
+class _DailyMenuPageState extends State<_DailyMenuPage> {
+  DailyMeal? _todayMeal;
+  List<Food> _availableFoods = [];
+  bool _isLoading = true;
+  List<String> _availableDates = [];
+  int _currentDateIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableDates();
+    _loadMealData();
+  }
+
+  void _loadAvailableDates() {
+    // Hive에서 사용 가능한 급식 날짜들 가져오기
+    final allMeals = HiveHelper.instance.getAllMeals();
+    _availableDates = allMeals.map((meal) => meal.mealDate).toList();
+    _availableDates.sort((a, b) => b.compareTo(a)); // 날짜순 정렬 (최신 날짜가 앞으로)
+
+    // 오늘 날짜가 있는지 확인하고 인덱스 설정
+    final todayDate =
+        '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
+    final todayIndex = _availableDates.indexOf(todayDate);
+    _currentDateIndex = todayIndex >= 0 ? todayIndex : 0;
+  }
+
+  Future<void> _loadMealData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 현재 선택된 날짜의 급식 데이터 가져오기
+      String targetDate;
+      if (_availableDates.isNotEmpty &&
+          _currentDateIndex < _availableDates.length) {
+        targetDate = _availableDates[_currentDateIndex];
+      } else {
+        targetDate =
+            '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
+      }
+
+      print('🔍 조회할 날짜: $targetDate');
+      final todayMeal = HiveHelper.instance.getMealByDate(targetDate);
+
+      // Hive 데이터 디버깅
+      print('📊 Hive 데이터 확인:');
+      final allMeals = HiveHelper.instance.getAllMeals();
+      print('  - 전체 급식 데이터: ${allMeals.length}개');
+      for (final meal in allMeals.take(3)) {
+        print(
+            '    * ${meal.mealDate}: 메뉴 ${meal.menus.length}개, 음식 ${meal.foods.length}개');
+      }
+
+      if (todayMeal != null) {
+        print('✅ 오늘 급식 데이터 발견:');
+        print('  - 메뉴: ${todayMeal.menus}');
+        print('  - 음식 ID들: ${todayMeal.foods}');
+      } else {
+        print('❌ 오늘 급식 데이터 없음');
+      }
+
+      // 획득 가능한 재료들 가져오기
+      final allFoods = HiveHelper.instance.getAllFoods();
+      print('🍽️ 전체 음식 데이터: ${allFoods.length}개');
+
+      // 획득한 음식들 확인
+      final acquiredFoods =
+          allFoods.where((food) => food.acquiredAt != null).toList();
+      print('✅ 획득한 음식들: ${acquiredFoods.length}개');
+      for (final food in acquiredFoods.take(5)) {
+        print('  * ID: ${food.id}, 이름: ${food.name}, 획득일: ${food.acquiredAt}');
+      }
+
+      final availableFoods = <Food>[];
+
+      if (todayMeal != null) {
+        print('🔍 급식 음식 ID들과 획득 가능한 음식 매칭:');
+        // 해당 날짜 급식에 포함된 모든 음식들을 추가 (획득 여부와 관계없이)
+        for (final foodId in todayMeal.foods) {
+          print('  - 음식 ID $foodId 검색 중...');
+          final food = allFoods.firstWhere(
+            (f) => f.id == foodId,
+            orElse: () {
+              print('    ❌ ID $foodId 음식을 찾을 수 없음');
+              return Food(id: foodId, name: '알 수 없는 음식', imageUrl: '');
+            },
+          );
+
+          print('    ✅ 음식 발견: ${food.name} (획득일: ${food.acquiredAt})');
+
+          // 획득 여부와 관계없이 모든 음식 추가
+          availableFoods.add(food);
+          if (food.acquiredAt != null) {
+            print('    🎉 이미 획득한 음식');
+          } else {
+            print('    ⚠️ 아직 획득하지 않은 음식 (획득 가능)');
+          }
+        }
+      }
+
+      print('📋 최종 availableFoods: ${availableFoods.length}개');
+      for (final food in availableFoods) {
+        print('  - ${food.name} (ID: ${food.id})');
+      }
+
+      setState(() {
+        _todayMeal = todayMeal;
+        _availableFoods = availableFoods;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 급식 데이터 로드 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 날짜 표시
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
-              ),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _getDateString(date),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${date.year}년 ${date.month}월 ${date.day}일',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // 추천 메뉴 섹션
-          const Text(
-            '오늘의 추천 메뉴',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // 추천 메뉴 카드들
-          _RecommendationCard(
-            title: '김치찌개',
-            description: '매콤한 김치와 돼지고기의 완벽한 조화',
-            image: 'assets/images/beef_seaweed_soup.webp',
-            rating: 4.5,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _RecommendationCard(
-            title: '된장찌개',
-            description: '건강한 한끼 식사',
-            image: 'assets/images/seaweed_soup.webp',
-            rating: 4.2,
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // 빠른 액션 섹션
-          const Text(
-            '빠른 액션',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            children: [
-              Expanded(
-                child: _QuickActionCard(
-                  icon: Icons.restaurant,
-                  title: '랜덤 메뉴',
-                  subtitle: '오늘 뭐 먹을까?',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('랜덤 메뉴 기능 준비 중입니다')),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _QuickActionCard(
-                  icon: Icons.favorite,
-                  title: '즐겨찾기',
-                  subtitle: '내가 좋아하는 메뉴',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('즐겨찾기 기능 준비 중입니다')),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  void _onSwipeLeft() {
+    if (_currentDateIndex > 0) {
+      setState(() {
+        _currentDateIndex--;
+      });
+      _loadMealData();
+    }
   }
-}
 
-class _RecommendationCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final String image;
-  final double rating;
+  void _onSwipeRight() {
+    if (_currentDateIndex < _availableDates.length - 1) {
+      setState(() {
+        _currentDateIndex++;
+      });
+      _loadMealData();
+    }
+  }
 
-  const _RecommendationCard({
-    required this.title,
-    required this.description,
-    required this.image,
-    required this.rating,
-  });
+  String _getCurrentDateString() {
+    if (_availableDates.isNotEmpty &&
+        _currentDateIndex < _availableDates.length) {
+      final dateStr = _availableDates[_currentDateIndex];
+      final dateParts = dateStr.split('-');
+      if (dateParts.length == 3) {
+        final year = int.parse(dateParts[0]);
+        final month = int.parse(dateParts[1]);
+        final day = int.parse(dateParts[2]);
+        final date = DateTime(year, month, day);
+        return _getDateString(date);
+      }
+    }
+    return _getDateString(widget.date);
+  }
+
+  String _getDateString(DateTime date) {
+    return '${date.month}월 ${date.day}일';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              image,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : GestureDetector(
+              onHorizontalDragEnd: (details) {
+                if (details.primaryVelocity! > 0) {
+                  // 오른쪽으로 스와이프 (이전 날짜)
+                  _onSwipeRight();
+                } else if (details.primaryVelocity! < 0) {
+                  // 왼쪽으로 스와이프 (다음 날짜)
+                  _onSwipeLeft();
+                }
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.star,
-                      size: 16,
-                      color: Colors.amber,
+                    // 날짜 표시
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getCurrentDateString(),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${widget.date.year}년 ${widget.date.month}월 ${widget.date.day}일',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      rating.toString(),
-                      style: const TextStyle(
-                        fontSize: 14,
+
+                    const SizedBox(height: 20),
+
+                    // 오늘의 급식 정보
+                    const Text(
+                      '급식 메뉴',
+                      style: TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    const SizedBox(height: 12),
+
+                    if (_todayMeal != null && _todayMeal!.menus.isNotEmpty) ...[
+                      // 메뉴 리스트
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ..._todayMeal!.menus.map((menu) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.restaurant,
+                                          color: Color(0xFF4CAF50), size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          menu,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // 획득 가능한 재료 섹션
+                      const Text(
+                        '획득 가능한 재료',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      if (_availableFoods.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    '${_availableFoods.length}개의 재료',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF4CAF50),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '(${_availableFoods.where((f) => f.acquiredAt != null).length}개 획득)',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _availableFoods
+                                    .map((food) => FoodChip(food: food))
+                                    .toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            '아직 획득한 재료가 없습니다.\n조합 탭에서 재료를 획득해보세요!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ] else ...[
+                      // 급식 정보가 없는 경우
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          '오늘은 급식이 없습니다.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
     );
   }
 }
-
-// 빠른 액션 카드
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: const Color(0xFF4CAF50),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 최근 조합 카드
-class _RecentCombinationCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final double rating;
-  final VoidCallback onTap;
-
-  const _RecentCombinationCard({
-    required this.title,
-    required this.description,
-    required this.rating,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.restaurant,
-                color: Color(0xFF4CAF50),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              children: [
-                const Icon(
-                  Icons.star,
-                  size: 16,
-                  color: Colors.amber,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  rating.toString(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
 
 // 랭킹 탭
 class _RankingTab extends StatelessWidget {
@@ -539,57 +527,6 @@ class _RankingTab extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               '랭킹 기능 준비 중입니다',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '곧 만나보실 수 있어요!',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 프로필 탭
-class _ProfileTab extends StatelessWidget {
-  const _ProfileTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          '내 정보',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        elevation: 0,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person,
-              size: 80,
-              color: Color(0xFF4CAF50),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '프로필 기능 준비 중입니다',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

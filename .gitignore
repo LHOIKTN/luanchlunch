@@ -1,4 +1,6 @@
 .env
+convert/pngs
+convert/webps
 # Miscellaneous
 *.class
 *.log

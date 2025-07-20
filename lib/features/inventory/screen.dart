@@ -19,7 +19,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   bool isCombinationFailed = false; // 조합 실패 상태
   Food? selectedFoodForDetail; // 상세 정보를 보여줄 재료
   bool isLoading = true; // 로딩 상태
-  
+
   final FoodDataManager _foodDataManager = FoodDataManager();
 
   @override
@@ -73,11 +73,19 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     });
   }
 
-  void _onCompleteRecipe(Food recipe) {
+  void _onCompleteRecipe(Food recipe) async {
     setState(() {
       resultFood = recipe;
-      _foodDataManager.addCompletedRecipe(recipe);
       isCombinationFailed = false;
+    });
+
+    // 레시피 완성 처리
+    await _foodDataManager.addCompletedRecipe(recipe);
+
+    // UI 업데이트 - 새로 추가된 음식만 리스트에 추가
+    setState(() {
+      // availableFoods에 새로 추가된 음식이 이미 포함되어 있음
+      // FoodDataManager.addCompletedRecipe에서 이미 업데이트됨
     });
   }
 
@@ -133,20 +141,23 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                               ? const Center(
                                   child: Text(
                                     '사용 가능한 재료가 없습니다.',
-                                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                                    style: TextStyle(
+                                        fontSize: 18, color: Colors.grey),
                                   ),
                                 )
                               : GridView.builder(
                                   gridDelegate:
                                       const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 4,
-                                        mainAxisSpacing: 8,
-                                        crossAxisSpacing: 12,
-                                        childAspectRatio: 0.6,
-                                      ),
-                                  itemCount: _foodDataManager.availableFoods.length,
+                                    crossAxisCount: 4,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 12,
+                                    childAspectRatio: 0.6,
+                                  ),
+                                  itemCount:
+                                      _foodDataManager.availableFoods.length,
                                   itemBuilder: (context, index) {
-                                    final food = _foodDataManager.availableFoods[index];
+                                    final food =
+                                        _foodDataManager.availableFoods[index];
                                     return FoodGridItem(
                                       food: food,
                                       onTap: () => _addToCombinationBox(food),
@@ -188,7 +199,8 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
               child: FoodDetailModal(
                 food: selectedFoodForDetail!,
                 allFoods: _foodDataManager.allFoods, // 모든 음식 목록 전달
-                onIngredientTap: (f) => setState(() => selectedFoodForDetail = f),
+                onIngredientTap: (f) =>
+                    setState(() => selectedFoodForDetail = f),
                 onClose: _hideFoodDetail,
               ),
             ),
