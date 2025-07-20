@@ -20,9 +20,7 @@ class PreloadData {
       final userUUID = await _syncUser();
       await _syncRecipes();
       await _syncMeals();
-      if (userUUID != null) {
-        await _syncInventory(userUUID);
-      }
+      // _syncInventory는 _syncUser 내부에서 이미 호출됨 (기존 사용자의 경우)
 
       print('✅ 데이터 프리로드 완료!');
     } catch (e) {
@@ -63,6 +61,10 @@ class PreloadData {
         await HiveHelper.instance.saveUserInfo(updatedUserInfo);
         print('✅ 사용자 정보 업데이트 완료');
       }
+
+      // 기존 사용자의 모든 획득된 재료 데이터를 Supabase에 동기화
+      await _syncAllAcquiredFoods(userUUID);
+      
       return userUUID;
     }
   }
@@ -278,8 +280,6 @@ class PreloadData {
     print('🎁 새 사용자 기본 재료 자동 획득 시작...');
 
     try {
-      // 기본 재료들의 ID 수집
-
       // Hive에 기본 재료들 획득 상태 추가
       final grantedIngredients =
           await HiveHelper.instance.grantBasicIngredients();
@@ -290,18 +290,69 @@ class PreloadData {
         final basicIngredientIds = grantedIngredients
             .map((ingredient) => ingredient['id'] as int)
             .toList();
+        
+        print('🔄 Supabase에 기본 재료 추가 중: $basicIngredientIds');
         final result = await api.addBasicIngredientsToInventory(
             userUUID, basicIngredientIds);
+        
         if (result['success'] == true) {
           print('✅ Supabase 기본 재료 추가 성공: ${basicIngredientIds.length}개');
+          print('📊 Supabase 응답: ${result['data']?.length ?? 0}개 처리됨');
         } else {
           print('⚠️ Supabase 기본 재료 추가 실패: ${result['error']}');
+          // Hive에서 롤백 (선택사항)
+          print('⚠️ Hive 데이터는 유지하고 Supabase 동기화만 실패');
         }
+      } else {
+        print('ℹ️ 기본 재료가 이미 모두 획득되어 있습니다.');
       }
 
       print('🎁 새 사용자 기본 재료 자동 획득 완료');
     } catch (e) {
       print('❌ 기본 재료 자동 획득 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
+    }
+  }
+
+  Future<void> _syncAllAcquiredFoods(String userUUID) async {
+    print('🎒 기존 사용자 모든 획득 재료 동기화 시작... (Hive → Supabase)');
+
+    // Hive에서 획득한 음식들 조회
+    final acquiredFoods = HiveHelper.instance.getAcquiredFoods();
+    print('📋 Hive에서 획득한 음식 ${acquiredFoods.length}개 발견');
+
+    if (acquiredFoods.isEmpty) {
+      print('✅ 동기화할 획득 재료 데이터가 없습니다.');
+      return;
+    }
+
+    // Supabase에 upsert할 데이터 준비
+    final List<Map<String, dynamic>> inventoryData = [];
+
+    for (final food in acquiredFoods) {
+      if (food.acquiredAt != null) {
+        inventoryData.add({
+          'user_uuid': userUUID,
+          'food_id': food.id,
+          'acquired_at': food.acquiredAt!.toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        print(
+            '📦 획득 재료 데이터 준비: 음식 ${food.id} (${food.name}) - ${food.acquiredAt}');
+      }
+    }
+
+    // Supabase에 upsert
+    try {
+      final result = await api.insertInventory(inventoryData);
+      if (result['success'] == true) {
+        print('✅ 획득 재료 데이터 동기화 완료: ${inventoryData.length}개');
+        print('📊 동기화 결과: ${result['processed_count']}개 처리됨');
+      } else {
+        print('❌ 획득 재료 데이터 동기화 실패: ${result['error']}');
+      }
+    } catch (e) {
+      print('❌ 획득 재료 데이터 동기화 실패: $e');
     }
   }
 
@@ -326,20 +377,24 @@ class PreloadData {
           'user_uuid': userUUID,
           'food_id': food.id,
           'acquired_at': food.acquiredAt!.toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
         });
         print(
             '📦 인벤토리 데이터 준비: 음식 ${food.id} (${food.name}) - ${food.acquiredAt}');
       }
     }
 
-    // Supabase에 insert
+    // Supabase에 upsert (기존 api 인스턴스 사용)
     try {
-      final api = SupabaseApi();
       final result = await api.insertInventory(inventoryData);
-      print('✅ 인벤토리 데이터 insert 완료: ${inventoryData.length}개');
-      print('📊 Insert 결과: $result');
+      if (result['success'] == true) {
+        print('✅ 인벤토리 데이터 동기화 완료: ${inventoryData.length}개');
+        print('📊 동기화 결과: ${result['processed_count']}개 처리됨');
+      } else {
+        print('❌ 인벤토리 데이터 동기화 실패: ${result['error']}');
+      }
     } catch (e) {
-      print('❌ 인벤토리 데이터 insert 실패: $e');
+      print('❌ 인벤토리 데이터 동기화 실패: $e');
     }
   }
 }

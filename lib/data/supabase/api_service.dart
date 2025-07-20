@@ -92,24 +92,29 @@ class SupabaseApi {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // Insert inventory data to Supabase (ignore if exists)
+  // Upsert inventory data to Supabase (update if exists, insert if not)
   Future<Map<String, dynamic>> insertInventory(
       List<Map<String, dynamic>> inventoryData) async {
     try {
-      print('🔄 인벤토리 데이터 insert 시작: ${inventoryData.length}개');
+      print('🔄 인벤토리 데이터 upsert 시작: ${inventoryData.length}개');
 
-      // insert 실행 (이미 있으면 무시)
-      final response =
-          await supabase.from('inventory').insert(inventoryData).select();
+      // upsert 실행 (있으면 업데이트, 없으면 추가)
+      final response = await supabase
+          .from('inventory')
+          .upsert(
+            inventoryData,
+            onConflict: 'user_uuid,food_id',
+          )
+          .select();
 
-      print('✅ 인벤토리 insert 성공: ${response.length}개 처리됨');
+      print('✅ 인벤토리 upsert 성공: ${response.length}개 처리됨');
       return {
         'success': true,
         'processed_count': response.length,
         'data': response,
       };
     } catch (e) {
-      print('❌ 인벤토리 insert 실패: $e');
+      print('❌ 인벤토리 upsert 실패: $e');
       return {
         'success': false,
         'error': e.toString(),
