@@ -79,12 +79,19 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   bool _isLoading = true;
   List<String> _availableDates = [];
   int _currentDateIndex = 0;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _loadAvailableDates();
     _loadMealData();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _loadAvailableDates() {
@@ -131,6 +138,11 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
     // 오늘 날짜의 인덱스 찾기
     _currentDateIndex = _availableDates.indexOf(todayDate);
     print('🎯 오늘 날짜 인덱스: $_currentDateIndex (날짜: $todayDate)');
+    
+    // PageController 초기화
+    if (_availableDates.isNotEmpty) {
+      _pageController = PageController(initialPage: _currentDateIndex);
+    }
   }
 
   Future<void> _loadMealData() async {
@@ -223,49 +235,12 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
     }
   }
 
-  void _onSwipeLeft() {
-    // 왼쪽 스와이프: 다음 날짜로 (미래)
-    if (_currentDateIndex < _availableDates.length - 1) {
-      final oldIndex = _currentDateIndex;
-      final oldDate = _availableDates[oldIndex];
-
+  void _onPageChanged(int page) {
+    if (page != _currentDateIndex && page >= 0 && page < _availableDates.length) {
       setState(() {
-        _currentDateIndex++;
+        _currentDateIndex = page;
       });
-
-      final newIndex = _currentDateIndex;
-      final newDate = _availableDates[newIndex];
-
-      print('🔄 왼쪽 스와이프: $oldDate (인덱스 $oldIndex) → $newDate (인덱스 $newIndex)');
-      print('📅 전체 날짜 리스트: $_availableDates');
-      print('🎯 현재 선택된 인덱스: $_currentDateIndex');
-
       _loadMealData();
-    } else {
-      print('⚠️ 왼쪽 스와이프: 이미 가장 최신 날짜입니다 (인덱스 $_currentDateIndex)');
-    }
-  }
-
-  void _onSwipeRight() {
-    // 오른쪽 스와이프: 이전 날짜로 (과거)
-    if (_currentDateIndex > 0) {
-      final oldIndex = _currentDateIndex;
-      final oldDate = _availableDates[oldIndex];
-
-      setState(() {
-        _currentDateIndex--;
-      });
-
-      final newIndex = _currentDateIndex;
-      final newDate = _availableDates[newIndex];
-
-      print('🔄 오른쪽 스와이프: $oldDate (인덱스 $oldIndex) → $newDate (인덱스 $newIndex)');
-      print('📅 전체 날짜 리스트: $_availableDates');
-      print('🎯 현재 선택된 인덱스: $_currentDateIndex');
-
-      _loadMealData();
-    } else {
-      print('⚠️ 오른쪽 스와이프: 이미 가장 오래된 날짜입니다 (인덱스 $_currentDateIndex)');
     }
   }
 
@@ -297,197 +272,215 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_availableDates.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(
+          child: Text(
+            '사용 가능한 날짜가 없습니다.',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : GestureDetector(
-              onHorizontalDragEnd: (details) {
-                print('🖐️ 스와이프 감지: velocity = ${details.primaryVelocity}');
-                if (details.primaryVelocity! > 100) {
-                  // 오른쪽으로 스와이프 (이전 날짜)
-                  print('➡️ 오른쪽 스와이프 감지');
-                  _onSwipeRight();
-                } else if (details.primaryVelocity! < -100) {
-                  // 왼쪽으로 스와이프 (다음 날짜)
-                  print('⬅️ 왼쪽 스와이프 감지');
-                  _onSwipeLeft();
-                }
-              },
-              behavior: HitTestBehavior.opaque, // 전체 영역에서 터치 감지
-              child: SingleChildScrollView(
+      body: PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        itemCount: _availableDates.length,
+        itemBuilder: (context, index) {
+          // 현재 페이지의 데이터를 로드
+          if (index == _currentDateIndex) {
+            return _buildDailyMenuContent();
+          } else {
+            // 다른 페이지는 로딩 상태로 표시
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDailyMenuContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 오늘의 급식 정보
+          Text(
+            '${_getCurrentDateString()} 급식 메뉴',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          if (_todayMeal != null && _todayMeal!.menus.isNotEmpty) ...[
+            // 메뉴 리스트
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._todayMeal!.menus.map((menu) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.restaurant,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                menu,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 획득 가능한 재료 섹션
+            const Text(
+              '획득 가능한 재료',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            if (_availableFoods.isNotEmpty) ...[
+              Container(
                 padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 오늘의 급식 정보
-                    Text(
-                      '${_getCurrentDateString()} 급식 메뉴',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    if (_todayMeal != null && _todayMeal!.menus.isNotEmpty) ...[
-                      // 메뉴 리스트
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ..._todayMeal!.menus.map((menu) => Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.restaurant,
-                                          color: AppColors.primary, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          menu,
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // 획득 가능한 재료 섹션
-                      const Text(
-                        '획득 가능한 재료',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      if (_availableFoods.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    '${_availableFoods.length}개의 재료',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '(${_availableFoods.where((f) => f.acquiredAt != null).length}개 획득)',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: _availableFoods
-                                    .map((food) => FoodChip(food: food))
-                                    .toList(),
-                              ),
-                            ],
+                    Row(
+                      children: [
+                        Text(
+                          '${_availableFoods.length}개의 재료',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primary,
                           ),
                         ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Text(
-                            '아직 획득한 재료가 없습니다.\n조합 탭에서 재료를 획득해보세요!',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                              fontStyle: FontStyle.italic,
-                            ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '(${_availableFoods.where((f) => f.acquiredAt != null).length}개 획득)',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
                           ),
                         ),
                       ],
-                    ] else ...[
-                      // 급식 정보가 없는 경우
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          '이 날짜에는 급식이 없습니다.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _availableFoods
+                          .map((food) => FoodChip(food: food))
+                          .toList(),
+                    ),
                   ],
                 ),
               ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  '아직 획득한 재료가 없습니다.\n조합 탭에서 재료를 획득해보세요!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ] else ...[
+            // 급식 정보가 없는 경우
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                '이 날짜에는 급식이 없습니다.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ),
+          ],
+        ],
+      ),
     );
   }
 }
