@@ -17,22 +17,25 @@ class DailyMealAdapter extends TypeAdapter<DailyMeal> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return DailyMeal(
-      mealDate: fields[0] as String,
-      menus: (fields[1] as List).cast<String>(),
+      lunchDate: fields[0] as String,
+      menuList: fields[1] as String,
       foods: (fields[2] as List).cast<int>(),
+      isAcquired: fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, DailyMeal obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
-      ..write(obj.mealDate)
+      ..write(obj.lunchDate)
       ..writeByte(1)
-      ..write(obj.menus)
+      ..write(obj.menuList)
       ..writeByte(2)
-      ..write(obj.foods);
+      ..write(obj.foods)
+      ..writeByte(3)
+      ..write(obj.isAcquired);
   }
 
   @override

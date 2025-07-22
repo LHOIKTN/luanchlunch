@@ -102,10 +102,21 @@ class HiveHelper {
     }
   }
 
-  // Get foods that user has acquired (acquiredAt is not null)
+  // Get foods that user has acquired (acquiredAt is not null) - sorted by acquisition date
   List<Food> getAcquiredFoods() {
-    return _foodBox?.values.where((food) => food.acquiredAt != null).toList() ??
-        [];
+    final acquiredFoods =
+        _foodBox?.values.where((food) => food.acquiredAt != null).toList() ??
+            [];
+
+    // 획득일 순으로 정렬 (오래된 획득이 먼저, 최신 획득이 나중에)
+    acquiredFoods.sort((a, b) {
+      if (a.acquiredAt == null && b.acquiredAt == null) return 0;
+      if (a.acquiredAt == null) return 1;
+      if (b.acquiredAt == null) return -1;
+      return a.acquiredAt!.compareTo(b.acquiredAt!);
+    });
+
+    return acquiredFoods;
   }
 
   // DailyMeal 관련 메서드들
@@ -116,19 +127,19 @@ class HiveHelper {
   }
 
   // 특정 날짜의 급식 데이터 가져오기
-  DailyMeal? getMealByDate(String mealDate) {
-    return _mealBox?.get(mealDate);
+  DailyMeal? getMealByDate(String lunchDate) {
+    return _mealBox?.get(lunchDate);
   }
 
   // 급식 데이터 upsert (있으면 업데이트, 없으면 추가)
   Future<void> upsertMeal(DailyMeal meal) async {
-    final existingMeal = getMealByDate(meal.mealDate);
+    final existingMeal = getMealByDate(meal.lunchDate);
     if (existingMeal != null) {
-      print('🔄 급식 데이터 업데이트: ${meal.mealDate}');
+      print('🔄 급식 데이터 업데이트: ${meal.lunchDate}');
     } else {
-      print('➕ 새로운 급식 데이터 추가: ${meal.mealDate}');
+      print('➕ 새로운 급식 데이터 추가: ${meal.lunchDate}');
     }
-    await _mealBox?.put(meal.mealDate, meal);
+    await _mealBox?.put(meal.lunchDate, meal);
   }
 
   // 여러 급식 데이터 upsert
@@ -149,9 +160,9 @@ class HiveHelper {
       return '1970-01-01';
     }
 
-    // mealDate를 기준으로 정렬하여 가장 최근 날짜 반환
-    meals.sort((a, b) => b.mealDate.compareTo(a.mealDate));
-    return meals.first.mealDate;
+    // lunchDate를 기준으로 정렬하여 가장 최근 날짜 반환
+    meals.sort((a, b) => b.lunchDate.compareTo(a.lunchDate));
+    return meals.first.lunchDate;
   }
 
   // 닉네임 관련 메서드들

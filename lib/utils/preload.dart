@@ -64,7 +64,7 @@ class PreloadData {
 
       // 기존 사용자의 모든 획득된 재료 데이터를 Supabase에 동기화
       await syncAllAcquiredFoods(userUUID);
-      
+
       return userUUID;
     }
   }
@@ -240,18 +240,18 @@ class PreloadData {
       final List<DailyMeal> mealList = [];
 
       for (final mealData in mealsData) {
-        final String mealDate = mealData['meal_date'];
-        final List<String> menus = List<String>.from(mealData['menus'] ?? []);
+        final String lunchDate = mealData['lunch_date'];
+        final String menuList = mealData['menu_list'] ?? '';
         final List<int> foods = List<int>.from(mealData['foods'] ?? []);
 
-        print(
-            '🍽️ 처리 중: 날짜=$mealDate, 메뉴=${menus.length}개, 음식=${foods.length}개');
+        print('🍽️ 처리 중: 날짜=$lunchDate, 메뉴=$menuList, 음식=${foods.length}개');
 
         // DailyMeal 객체 생성
         final meal = DailyMeal(
-          mealDate: mealDate,
-          menus: menus,
+          lunchDate: lunchDate,
+          menuList: menuList,
           foods: foods,
+          isAcquired: false, // 기본적으로 미획득 상태
         );
         print(meal);
         mealList.add(meal);
@@ -265,7 +265,7 @@ class PreloadData {
       final savedMeals = HiveHelper.instance.getAllMeals();
       for (final meal in savedMeals) {
         print(
-            '  - 날짜: ${meal.mealDate}, 메뉴: ${meal.menus.length}개, 음식: ${meal.foods.length}개');
+            '  - 날짜: ${meal.lunchDate}, 메뉴: ${meal.menuList}, 음식: ${meal.foods.length}개');
       }
       print('📋 총 ${savedMeals.length}개의 급식이 Hive에 저장됨');
 
@@ -290,11 +290,11 @@ class PreloadData {
         final basicIngredientIds = grantedIngredients
             .map((ingredient) => ingredient['id'] as int)
             .toList();
-        
+
         print('🔄 Supabase에 기본 재료 추가 중: $basicIngredientIds');
         final result = await api.addBasicIngredientsToInventory(
             userUUID, basicIngredientIds);
-        
+
         if (result['success'] == true) {
           print('✅ Supabase 기본 재료 추가 성공: ${basicIngredientIds.length}개');
           print('📊 Supabase 응답: ${result['data']?.length ?? 0}개 처리됨');

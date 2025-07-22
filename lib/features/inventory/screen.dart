@@ -28,6 +28,13 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     _loadFoodsFromHive();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 화면이 다시 활성화될 때마다 데이터 새로고침
+    _loadFoodsFromHive();
+  }
+
   /// Hive에서 음식 데이터를 로드합니다.
   Future<void> _loadFoodsFromHive() async {
     try {
@@ -74,6 +81,15 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   }
 
   void _onCompleteRecipe(Food recipe) async {
+    // 조합 실패 처리 (id가 -1인 경우)
+    if (recipe.id == -1) {
+      setState(() {
+        resultFood = null;
+        isCombinationFailed = true;
+      });
+      return;
+    }
+
     setState(() {
       resultFood = recipe;
       isCombinationFailed = false;
@@ -176,19 +192,22 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                   onClearCombination: _clearCombinationBox,
                   onCompleteRecipe: (recipe) async {
                     _onCompleteRecipe(recipe);
-                    // 완성 오버레이 띄우기
-                    await showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => CompleteOverlay(
-                        food: recipe,
-                        onClose: () {
-                          Navigator.of(context).pop();
-                          _clearCombinationBox();
-                        },
-                        onLongPress: () {},
-                      ),
-                    );
+
+                    // 조합 실패가 아닌 경우에만 완성 오버레이 띄우기
+                    if (recipe.id != -1) {
+                      await showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => CompleteOverlay(
+                          food: recipe,
+                          onClose: () {
+                            Navigator.of(context).pop();
+                            _clearCombinationBox();
+                          },
+                          onLongPress: () {},
+                        ),
+                      );
+                    }
                   },
                 ),
               ],

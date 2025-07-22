@@ -92,18 +92,18 @@ class SupabaseApi {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // Upsert inventory data to Supabase (update if exists, insert if not)
+  // Insert inventory data to Supabase (upsert - acquired_at 보존)
   Future<Map<String, dynamic>> insertInventory(
       List<Map<String, dynamic>> inventoryData) async {
     try {
       print('🔄 인벤토리 데이터 upsert 시작: ${inventoryData.length}개');
 
-      // upsert 실행 (있으면 업데이트, 없으면 추가)
+      // upsert 실행 (기존 데이터의 acquired_at은 유지, updated_at만 업데이트)
       final response = await supabase
           .from('inventory')
           .upsert(
             inventoryData,
-            onConflict: 'user_uuid,food_id',
+            onConflict: 'food_id,user_uuid',
           )
           .select();
 
@@ -145,10 +145,10 @@ class SupabaseApi {
   // Get meals data with incremental sync
   Future<List<Map<String, dynamic>>> getMeals(String lastMealDate) async {
     final response = await supabase
-        .from('daily_meals_for_app')
+        .from('daily_lunch_for_app')
         .select()
-        .gt('meal_date', lastMealDate)
-        .order('meal_date', ascending: true);
+        .gt('lunch_date', lastMealDate)
+        .order('lunch_date', ascending: true);
 
     print('📊 Supabase 응답: ${response.length}개');
     return List<Map<String, dynamic>>.from(response);
@@ -158,11 +158,11 @@ class SupabaseApi {
   Future<List<Map<String, dynamic>>> getMealsByDateRange(
       String startDate, String endDate) async {
     final response = await supabase
-        .from('daily_meals_for_app')
+        .from('daily_lunch_for_app')
         .select()
-        .gte('meal_date', startDate)
-        .lte('meal_date', endDate)
-        .order('meal_date', ascending: true);
+        .gte('lunch_date', startDate)
+        .lte('lunch_date', endDate)
+        .order('lunch_date', ascending: true);
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -193,11 +193,11 @@ class SupabaseApi {
     }
   }
 
-  // Add basic ingredients to user inventory
+  // Add basic ingredients to user inventory (upsert)
   Future<Map<String, dynamic>> addBasicIngredientsToInventory(
       String userUUID, List<int> foodIds) async {
     try {
-      print('🔄 기본 재료 인벤토리 추가 시작: $userUUID -> $foodIds');
+      print('🔄 기본 재료 인벤토리 upsert 시작: $userUUID -> $foodIds');
 
       final now = DateTime.now().toIso8601String();
       final inventoryData = foodIds
@@ -205,6 +205,7 @@ class SupabaseApi {
                 'user_uuid': userUUID,
                 'food_id': foodId,
                 'acquired_at': now,
+                'updated_at': now,
               })
           .toList();
 
@@ -212,17 +213,17 @@ class SupabaseApi {
           .from('inventory')
           .upsert(
             inventoryData,
-            onConflict: 'user_uuid,food_id',
+            onConflict: 'food_id,user_uuid',
           )
           .select();
 
-      print('✅ 기본 재료 인벤토리 추가 성공: ${response.length}개');
+      print('✅ 기본 재료 인벤토리 upsert 성공: ${response.length}개');
       return {
         'success': true,
         'data': response,
       };
     } catch (e) {
-      print('❌ 기본 재료 인벤토리 추가 실패: $e');
+      print('❌ 기본 재료 인벤토리 upsert 실패: $e');
       return {
         'success': false,
         'error': e.toString(),

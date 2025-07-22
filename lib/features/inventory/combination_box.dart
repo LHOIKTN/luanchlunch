@@ -100,7 +100,8 @@ class CombinationBox extends StatelessWidget {
                   }
                 }
                 // 조합 버튼을 눌렀을 때의 결과 상태
-                bool showResult = resultFood != null || isCombinationFailed;
+                // 조합 인벤토리에 변화가 있으면 결과 상태를 초기화
+                bool showResult = (resultFood != null || isCombinationFailed) && selectedFoods.length >= 2;
                 if (showResult) {
                   if (resultFood != null && matchedRecipe != null) {
                     // 완성품 노출
@@ -143,6 +144,9 @@ class CombinationBox extends StatelessWidget {
                     onTap: () async {
                       if (matchedRecipe != null) {
                         onCompleteRecipe(matchedRecipe);
+                      } else {
+                        // 조합 실패 - isCombinationFailed를 true로 설정
+                        onCompleteRecipe(Food(id: -1, name: '조합 실패', imageUrl: ''));
                       }
                     },
                     child: Container(

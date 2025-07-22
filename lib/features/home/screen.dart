@@ -6,6 +6,7 @@ import 'package:launchlunch/theme/app_colors.dart';
 import 'package:launchlunch/features/home/home_controller.dart';
 import 'package:launchlunch/features/home/widgets/menu_list_card.dart';
 import 'package:launchlunch/features/home/widgets/ingredients_section.dart';
+import 'package:launchlunch/features/home/widgets/ingredient_acquisition_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,6 +56,13 @@ class _HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<_HomeTab> {
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 홈 탭이 활성화될 때마다 데이터 새로고침
+    print('🔄 홈 탭 활성화 - 데이터 새로고침');
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -90,16 +98,23 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 화면이 다시 활성화될 때마다 데이터 새로고침
+    print('🔄 DailyMenuPage 활성화 - 데이터 새로고침');
+    _loadMealData();
+  }
+
   Future<void> _initializeData() async {
     _controller.loadAvailableDates();
-    
+
     if (_controller.availableDates.isNotEmpty) {
-      _pageController = PageController(initialPage: _controller.currentDateIndex);
+      _pageController =
+          PageController(initialPage: _controller.currentDateIndex);
       await _loadMealData();
     }
   }
-
-
 
   Future<void> _loadMealData() async {
     setState(() {
@@ -120,8 +135,8 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   }
 
   void _onPageChanged(int page) {
-    if (page != _controller.currentDateIndex && 
-        page >= 0 && 
+    if (page != _controller.currentDateIndex &&
+        page >= 0 &&
         page < _controller.availableDates.length) {
       _controller.updateCurrentDateIndex(page);
       _loadMealData();
@@ -185,7 +200,8 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
 
           const SizedBox(height: 12),
 
-          if (_controller.todayMeal != null && _controller.todayMeal!.menus.isNotEmpty) ...[
+          if (_controller.todayMeal != null &&
+              _controller.todayMeal!.menuList.isNotEmpty) ...[
             // 메뉴 리스트
             MenuListCard(meal: _controller.todayMeal!),
 
@@ -193,6 +209,19 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
 
             // 획득 가능한 재료 섹션
             IngredientsSection(availableFoods: _controller.availableFoods),
+
+            const SizedBox(height: 20),
+
+            // 재료 획득 카드
+            IngredientAcquisitionCard(
+              meal: _controller.todayMeal!,
+              availableFoods: _controller.availableFoods,
+              onAcquirePressed: () async {
+                await _controller.acquireIngredients();
+                // UI 갱신을 위해 데이터 다시 로드
+                await _loadMealData();
+              },
+            ),
           ] else ...[
             // 급식 정보가 없는 경우
             Container(

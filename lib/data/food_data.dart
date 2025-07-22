@@ -25,7 +25,17 @@ class FoodDataManager {
 
       _allFoods = foods;
       // 획득한 음식들만 사용 가능한 음식으로 설정 (acquired_at이 있는 것들)
-      _availableFoods = foods.where((f) => f.acquiredAt != null).toList();
+      final acquiredFoods = foods.where((f) => f.acquiredAt != null).toList();
+
+      // 획득일 순으로 정렬 (오래된 획득이 먼저, 최신 획득이 나중에)
+      acquiredFoods.sort((a, b) {
+        if (a.acquiredAt == null && b.acquiredAt == null) return 0;
+        if (a.acquiredAt == null) return 1;
+        if (b.acquiredAt == null) return -1;
+        return a.acquiredAt!.compareTo(b.acquiredAt!);
+      });
+
+      _availableFoods = acquiredFoods;
 
       print('✅ Hive에서 ${foods.length}개의 음식 데이터 로드 완료');
     } catch (e) {
@@ -34,7 +44,7 @@ class FoodDataManager {
     }
   }
 
-    /// 레시피를 완성했을 때 호출
+  /// 레시피를 완성했을 때 호출
   Future<void> addCompletedRecipe(Food recipe) async {
     // Hive에 획득 상태 저장
     await HiveHelper.instance.updateFoodAcquiredAt(recipe.id, DateTime.now());
@@ -61,8 +71,18 @@ class FoodDataManager {
       print('❌ 조합 완성 음식 인벤토리 추가 실패: $e');
     }
 
-    // availableFoods 업데이트 (획득한 음식들만)
-    _availableFoods = _allFoods.where((f) => f.acquiredAt != null).toList();
+    // availableFoods 업데이트 (획득한 음식들만, 획득일 순으로 정렬)
+    final acquiredFoods = _allFoods.where((f) => f.acquiredAt != null).toList();
+
+    // 획득일 순으로 정렬 (오래된 획득이 먼저, 최신 획득이 나중에)
+    acquiredFoods.sort((a, b) {
+      if (a.acquiredAt == null && b.acquiredAt == null) return 0;
+      if (a.acquiredAt == null) return 1;
+      if (b.acquiredAt == null) return -1;
+      return a.acquiredAt!.compareTo(b.acquiredAt!);
+    });
+
+    _availableFoods = acquiredFoods;
   }
 
   /// 선택된 재료들로 레시피를 찾습니다.
