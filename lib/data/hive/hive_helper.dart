@@ -86,10 +86,27 @@ class HiveHelper {
 
   // Update food recipes
   Future<void> updateFoodRecipes(int foodId, List<int> recipes) async {
+    print('🔧 [Hive 업데이트] 음식 $foodId 레시피 업데이트 시작: $recipes');
+    
     final food = _foodBox?.get(foodId);
     if (food != null) {
+      print('✅ [Hive 업데이트] 음식 $foodId 찾음: ${food.name}');
+      print('📝 [Hive 업데이트] 기존 레시피: ${food.recipes}');
+      
       final updatedFood = food.copyWith(recipes: recipes);
       await _foodBox?.put(foodId, updatedFood);
+      
+      print('✅ [Hive 업데이트] 음식 $foodId 레시피 업데이트 완료: ${updatedFood.recipes}');
+      
+      // 업데이트 후 검증
+      final verifyFood = _foodBox?.get(foodId);
+      if (verifyFood?.recipes != null) {
+        print('🎯 [Hive 검증] 음식 $foodId 업데이트 검증 성공: ${verifyFood!.recipes}');
+      } else {
+        print('❌ [Hive 검증] 음식 $foodId 업데이트 검증 실패: 레시피가 null');
+      }
+    } else {
+      print('❌ [Hive 업데이트] 음식 $foodId를 찾을 수 없음!');
     }
   }
 
@@ -184,7 +201,7 @@ class HiveHelper {
 
     // 기본 재료들의 이름으로 ID 찾기
     final allFoods = getAllFoods();
-    final basicIngredientNames = ['쌀', '소금', '설탕', '참기름'];
+    final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕', '육수'];
     final now = DateTime.now();
     final List<Map<String, dynamic>> grantedIngredients = [];
 

@@ -109,7 +109,7 @@ class IngredientAcquisitionCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '급식 시간에 재료를 획득할 수 있습니다.',
+              '급식실에서 급식시간에 재료를 획득할 수 있습니다.',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textHint,

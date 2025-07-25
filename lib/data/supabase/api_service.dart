@@ -49,6 +49,9 @@ class SupabaseApi {
   }
 
   Future<List<Map<String, dynamic>>> getRecipes(String updatedAt) async {
+    print('🔍 [레시피 조회] Supabase recipes 테이블 조회 시작...');
+    print('📅 [레시피 조회] updatedAt 조건: $updatedAt');
+    
     final response = await supabase
         .from('recipes')
         .select('result_id, required_id, updated_at, quantity')
@@ -56,6 +59,16 @@ class SupabaseApi {
         .order("result_id, updated_at", ascending: true);
 
     final rawData = List<Map<String, dynamic>>.from(response);
+    print('📊 [레시피 조회] Supabase 응답: ${rawData.length}개 레시피 로우');
+    
+    // 받아온 원시 데이터 상세 로그
+    for (int i = 0; i < rawData.length && i < 10; i++) {
+      final row = rawData[i];
+      print('📝 [레시피 조회] 원시 데이터 $i: result_id=${row['result_id']}, required_id=${row['required_id']}, quantity=${row['quantity']}, updated_at=${row['updated_at']}');
+    }
+    if (rawData.length > 10) {
+      print('📝 [레시피 조회] ... 및 ${rawData.length - 10}개 더');
+    }
 
     // result_id로 그룹핑하고 required_id들을 수집
     final Map<int, Map<String, dynamic>> groupedRecipes = {};
@@ -72,14 +85,25 @@ class SupabaseApi {
           'required_ids': <int>[],
           'updated_at': updatedAt,
         };
+        print('🆕 [레시피 조회] 새로운 result_id 그룹 생성: $resultId');
       }
 
       // required_id 추가
       for (int i = 0; i < quantity; i += 1) {
         groupedRecipes[resultId]!['required_ids'].add(requiredId);
       }
+      print('➕ [레시피 조회] result_id=$resultId에 required_id=$requiredId를 ${quantity}개 추가');
     }
-    return groupedRecipes.values.toList();
+    
+    final groupedList = groupedRecipes.values.toList();
+    print('🎯 [레시피 조회] 최종 그룹핑된 레시피: ${groupedList.length}개');
+    
+    // 그룹핑된 결과 상세 로그
+    for (final group in groupedList) {
+      print('📋 [레시피 조회] 그룹: result_id=${group['result_id']}, required_ids=${group['required_ids']}, updated_at=${group['updated_at']}');
+    }
+    
+    return groupedList;
   }
 
   // Get user's inventory with incremental sync
@@ -92,31 +116,67 @@ class SupabaseApi {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // Insert inventory data to Supabase (upsert - acquired_at 보존)
+  // Insert inventory data to Supabase (insert only - 이미 있으면 무시)
   Future<Map<String, dynamic>> insertInventory(
       List<Map<String, dynamic>> inventoryData) async {
     try {
-      print('🔄 인벤토리 데이터 upsert 시작: ${inventoryData.length}개');
+      print('🔄 인벤토리 데이터 insert 시작: ${inventoryData.length}개');
 
-      // upsert 실행 (기존 데이터의 acquired_at은 유지, updated_at만 업데이트)
-      final response = await supabase
-          .from('inventory')
-          .upsert(
-            inventoryData,
-            onConflict: 'food_id,user_uuid',
-          )
-          .select();
+      int successCount = 0;
+      int failCount = 0;
+      int duplicateCount = 0;
+      List<String> errors = [];
 
-      print('✅ 인벤토리 upsert 성공: ${response.length}개 처리됨');
+      // 개별 아이템별로 처리하여 실패 내성 향상
+      for (final item in inventoryData) {
+        try {
+          // inventory 테이블 구조에 맞게 데이터 정리
+          final inventoryItem = {
+            'user_uuid': item['user_uuid'],
+            'food_id': item['food_id'],
+            'acquired_at': item['acquired_at'],
+          };
+
+          // insert 시도 (이미 있으면 무시)
+          final response = await supabase
+              .from('inventory')
+              .insert(inventoryItem)
+              .select();
+
+          successCount++;
+          print('✅ 인벤토리 아이템 추가: food_id=${inventoryItem['food_id']}');
+        } catch (e) {
+          // 중복 키 오류인 경우 무시
+          if (e.toString().contains('duplicate key') || 
+              e.toString().contains('already exists') ||
+              e.toString().contains('violates unique constraint')) {
+            duplicateCount++;
+            print('ℹ️ 이미 존재하는 아이템 무시: food_id=${item['food_id']}');
+          } else {
+            failCount++;
+            final error = '❌ food_id=${item['food_id']}: $e';
+            errors.add(error);
+            print(error);
+          }
+        }
+      }
+
+      print('📊 인벤토리 insert 완료: 추가 ${successCount}개, 중복 ${duplicateCount}개, 실패 ${failCount}개');
+
       return {
-        'success': true,
-        'processed_count': response.length,
-        'data': response,
+        'success': failCount == 0, // 실패한 것이 없어야 true
+        'partial_success': successCount > 0, // 일부라도 성공하면 true
+        'processed_count': successCount,
+        'success_count': successCount,
+        'duplicate_count': duplicateCount,
+        'fail_count': failCount,
+        'errors': errors,
       };
     } catch (e) {
-      print('❌ 인벤토리 upsert 실패: $e');
+      print('❌ 인벤토리 insert 전체 실패: $e');
       return {
         'success': false,
+        'partial_success': false,
         'error': e.toString(),
       };
     }
@@ -193,11 +253,11 @@ class SupabaseApi {
     }
   }
 
-  // Add basic ingredients to user inventory (upsert)
+  // Add basic ingredients to user inventory (insert only - 이미 있으면 무시)
   Future<Map<String, dynamic>> addBasicIngredientsToInventory(
       String userUUID, List<int> foodIds) async {
     try {
-      print('🔄 기본 재료 인벤토리 upsert 시작: $userUUID -> $foodIds');
+      print('🔄 기본 재료 인벤토리 insert 시작: $userUUID -> $foodIds');
 
       final now = DateTime.now().toIso8601String();
       final inventoryData = foodIds
@@ -205,25 +265,33 @@ class SupabaseApi {
                 'user_uuid': userUUID,
                 'food_id': foodId,
                 'acquired_at': now,
-                'updated_at': now,
               })
           .toList();
 
-      final response = await supabase
-          .from('inventory')
-          .upsert(
-            inventoryData,
-            onConflict: 'food_id,user_uuid',
-          )
-          .select();
-
-      print('✅ 기본 재료 인벤토리 upsert 성공: ${response.length}개');
-      return {
-        'success': true,
-        'data': response,
-      };
+      final result = await insertInventory(inventoryData);
+      
+      if (result['partial_success'] == true) {
+        print('✅ 기본 재료 인벤토리 insert 완료: 추가 ${result['success_count']}개');
+        if (result['duplicate_count'] > 0) {
+          print('ℹ️ 이미 존재하는 재료: ${result['duplicate_count']}개');
+        }
+        if (result['fail_count'] > 0) {
+          print('⚠️ 실패: ${result['fail_count']}개');
+        }
+        return {
+          'success': result['success'],
+          'partial_success': result['partial_success'],
+          'data': result,
+        };
+      } else {
+        print('❌ 기본 재료 인벤토리 insert 전체 실패');
+        return {
+          'success': false,
+          'error': result['error'],
+        };
+      }
     } catch (e) {
-      print('❌ 기본 재료 인벤토리 upsert 실패: $e');
+      print('❌ 기본 재료 인벤토리 insert 실패: $e');
       return {
         'success': false,
         'error': e.toString(),

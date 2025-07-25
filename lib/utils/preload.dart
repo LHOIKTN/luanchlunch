@@ -101,6 +101,7 @@ class PreloadData {
         final int id = foodData['id'];
         final String name = foodData['name'];
         String imageUrl = foodData['image_url'];
+        final String? detail = foodData['detail'];
         final String updatedAt = foodData['updated_at'];
 
         print('🍽️ 처리 중: ID=$id, 이름=$name, 이미지=$imageUrl');
@@ -138,6 +139,7 @@ class PreloadData {
           id: id,
           name: name,
           imageUrl: localImagePath,
+          detail: detail,
         );
 
         if (localImagePath != '') {
@@ -182,42 +184,69 @@ class PreloadData {
         HiveHelper.instance.getLastUpdatedAt('recipes') ?? '1970-01-01';
     print('📅 레시피 마지막 갱신일: $lastUpdatedAt');
 
-    final recipesData = await api.getRecipes(lastUpdatedAt);
+    try {
+      final recipesData = await api.getRecipes(lastUpdatedAt);
 
-    if (recipesData.isEmpty) {
-      print('✅ 새로운 레시피 데이터가 없습니다.');
-      return;
-    }
-
-    print('🔄 ${recipesData.length}개의 레시피 데이터 처리 중...');
-
-    String latestRecipeUpdatedAt = lastUpdatedAt;
-
-    // 이미 result_id로 그룹핑된 데이터 처리
-    for (final recipe in recipesData) {
-      final int resultId = recipe['result_id'];
-      final List<int> requiredIds = List<int>.from(recipe['required_ids']);
-      final String updatedAt = recipe['updated_at'];
-
-      print('📝 음식 $resultId 레시피 업데이트: $requiredIds (updated_at: $updatedAt)');
-
-      // 각 음식의 레시피 정보 업데이트
-      await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
-
-      // 레시피 데이터의 최신 갱신일 추적
-      if (updatedAt.compareTo(latestRecipeUpdatedAt) > 0) {
-        latestRecipeUpdatedAt = updatedAt;
+      if (recipesData.isEmpty) {
+        print('✅ 새로운 레시피 데이터가 없습니다.');
+        return;
       }
-    }
 
-    // 레시피 마지막 갱신일 업데이트 (recipes 테이블용)
-    if (latestRecipeUpdatedAt != lastUpdatedAt) {
-      await HiveHelper.instance
-          .setLastUpdatedAt('recipes', latestRecipeUpdatedAt);
-      print('📅 레시피 마지막 갱신일 업데이트: $latestRecipeUpdatedAt');
-    }
+      print('🔄 ${recipesData.length}개의 레시피 데이터 처리 중...');
 
-    print('✅ 레시피 데이터 동기화 완료: ${recipesData.length}개 조합');
+      String latestRecipeUpdatedAt = lastUpdatedAt;
+
+      // 이미 result_id로 그룹핑된 데이터 처리
+      for (final recipe in recipesData) {
+        final int resultId = recipe['result_id'];
+        final List<int> requiredIds = List<int>.from(recipe['required_ids']);
+        final String updatedAt = recipe['updated_at'];
+
+        print('📝 [레시피 처리] 음식 $resultId 레시피 업데이트: $requiredIds (updated_at: $updatedAt)');
+
+        // 각 음식의 레시피 정보 업데이트
+        await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
+        print('✅ [레시피 처리] 음식 $resultId 레시피 Hive 업데이트 완료');
+
+        // 레시피 데이터의 최신 갱신일 추적
+        if (updatedAt.compareTo(latestRecipeUpdatedAt) > 0) {
+          latestRecipeUpdatedAt = updatedAt;
+        }
+      }
+
+      // 레시피 마지막 갱신일 업데이트 (recipes 테이블용)
+      if (latestRecipeUpdatedAt != lastUpdatedAt) {
+        await HiveHelper.instance
+            .setLastUpdatedAt('recipes', latestRecipeUpdatedAt);
+        print('📅 레시피 마지막 갱신일 업데이트: $latestRecipeUpdatedAt');
+      }
+
+      print('✅ 레시피 데이터 동기화 완료: ${recipesData.length}개 조합');
+      
+      // 동기화 후 Hive에서 레시피가 포함된 음식들 확인
+      await _verifyRecipesInHive();
+    } catch (e) {
+      print('❌ 레시피 데이터 동기화 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
+    }
+  }
+
+  /// Hive에 저장된 레시피 데이터 검증
+  Future<void> _verifyRecipesInHive() async {
+    print('🔍 [레시피 검증] Hive에 저장된 레시피 데이터 확인 시작...');
+    
+    final allFoods = HiveHelper.instance.getAllFoods();
+    final foodsWithRecipes = allFoods.where((food) => food.recipes != null && food.recipes!.isNotEmpty).toList();
+    
+    print('📊 [레시피 검증] 전체 음식: ${allFoods.length}개, 레시피 있는 음식: ${foodsWithRecipes.length}개');
+    
+    for (final food in foodsWithRecipes) {
+      print('🍽️ [레시피 검증] 음식 ${food.id}(${food.name}): 레시피 ${food.recipes}');
+    }
+    
+    if (foodsWithRecipes.isEmpty) {
+      print('⚠️ [레시피 검증] 경고: Hive에 레시피가 포함된 음식이 하나도 없습니다!');
+    }
   }
 
   Future<void> _syncMeals() async {
@@ -295,9 +324,14 @@ class PreloadData {
         final result = await api.addBasicIngredientsToInventory(
             userUUID, basicIngredientIds);
 
-        if (result['success'] == true) {
-          print('✅ Supabase 기본 재료 추가 성공: ${basicIngredientIds.length}개');
-          print('📊 Supabase 응답: ${result['data']?.length ?? 0}개 처리됨');
+        if (result['partial_success'] == true) {
+          print('✅ Supabase 기본 재료 추가 성공: 추가 ${result['data']?['success_count'] ?? 0}개');
+          if (result['data']?['duplicate_count'] > 0) {
+            print('ℹ️ 이미 존재하는 재료: ${result['data']?['duplicate_count']}개');
+          }
+          if (result['data']?['fail_count'] > 0) {
+            print('⚠️ 실패: ${result['data']?['fail_count']}개');
+          }
         } else {
           print('⚠️ Supabase 기본 재료 추가 실패: ${result['error']}');
           // Hive에서 롤백 (선택사항)
@@ -344,11 +378,17 @@ class PreloadData {
     // Supabase에 upsert
     try {
       final result = await api.insertInventory(inventoryData);
-      if (result['success'] == true) {
-        print('✅ 획득 재료 데이터 동기화 완료: ${inventoryData.length}개');
-        print('📊 동기화 결과: ${result['processed_count']}개 처리됨');
+      if (result['partial_success'] == true) {
+        print('✅ 획득 재료 데이터 동기화 완료: 추가 ${result['success_count']}개');
+        if (result['duplicate_count'] > 0) {
+          print('ℹ️ 이미 존재하는 재료: ${result['duplicate_count']}개');
+        }
+        if (result['fail_count'] > 0) {
+          print('⚠️ 실패: ${result['fail_count']}개');
+          print('📋 실패 상세: ${result['errors']?.join(', ')}');
+        }
       } else {
-        print('❌ 획득 재료 데이터 동기화 실패: ${result['error']}');
+        print('❌ 획득 재료 데이터 동기화 전체 실패: ${result['error']}');
       }
     } catch (e) {
       print('❌ 획득 재료 데이터 동기화 실패: $e');
@@ -385,11 +425,17 @@ class PreloadData {
     // Supabase에 upsert (기존 api 인스턴스 사용)
     try {
       final result = await api.insertInventory(inventoryData);
-      if (result['success'] == true) {
-        print('✅ 인벤토리 데이터 동기화 완료: ${inventoryData.length}개');
-        print('📊 동기화 결과: ${result['processed_count']}개 처리됨');
+      if (result['partial_success'] == true) {
+        print('✅ 인벤토리 데이터 동기화 완료: 추가 ${result['success_count']}개');
+        if (result['duplicate_count'] > 0) {
+          print('ℹ️ 이미 존재하는 재료: ${result['duplicate_count']}개');
+        }
+        if (result['fail_count'] > 0) {
+          print('⚠️ 실패: ${result['fail_count']}개');
+          print('📋 실패 상세: ${result['errors']?.join(', ')}');
+        }
       } else {
-        print('❌ 인벤토리 데이터 동기화 실패: ${result['error']}');
+        print('❌ 인벤토리 데이터 동기화 전체 실패: ${result['error']}');
       }
     } catch (e) {
       print('❌ 인벤토리 데이터 동기화 실패: $e');
