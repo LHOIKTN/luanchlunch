@@ -39,12 +39,29 @@ class FoodDataManager {
 
       print('✅ Hive에서 ${foods.length}개의 음식 데이터 로드 완료');
       
+      // food_id 20 특별 확인
+      final food20 = foods.where((food) => food.id == 20).firstOrNull;
+      if (food20 != null) {
+        print('🎯 [블루베리주먹밥 추적] FoodDataManager에서 food_id 20 확인됨');
+        print('📋 [블루베리주먹밥 추적] 이름: ${food20.name}, 레시피: ${food20.recipes}, 획득여부: ${food20.acquiredAt != null}');
+        
+        if (food20.recipes != null && food20.recipes!.isNotEmpty) {
+          print('✅ [블루베리주먹밥 추적] food_id 20에 레시피 존재: ${food20.recipes}');
+        } else {
+          print('❌ [블루베리주먹밥 추적] food_id 20에 레시피가 없음!');
+        }
+      } else {
+        print('❌ [블루베리주먹밥 추적] FoodDataManager에서 food_id 20을 찾을 수 없음!');
+      }
+      
       // 레시피 데이터 검증 로그 추가
       final foodsWithRecipes = foods.where((food) => food.recipes != null && food.recipes!.isNotEmpty).toList();
       print('🍽️ [데이터 로드] 레시피가 있는 음식: ${foodsWithRecipes.length}개');
       
       for (final food in foodsWithRecipes) {
-        print('📋 [데이터 로드] 음식 ${food.id}(${food.name}): 레시피 ${food.recipes}');
+        if (food.id != 20) {
+          print('📋 [데이터 로드] 음식 ${food.id}(${food.name}): 레시피 ${food.recipes}');
+        }
       }
       
       if (foodsWithRecipes.isEmpty) {

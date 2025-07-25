@@ -61,6 +61,22 @@ class SupabaseApi {
     final rawData = List<Map<String, dynamic>>.from(response);
     print('📊 [레시피 조회] Supabase 응답: ${rawData.length}개 레시피 로우');
     
+    // food_id 20(블루베리주먹밥) 특별 추적
+    final food20Recipes = rawData.where((row) => row['result_id'] == 20).toList();
+    if (food20Recipes.isNotEmpty) {
+      print('🎯 [블루베리주먹밥 추적] food_id 20 레시피 발견: ${food20Recipes.length}개 로우');
+      for (final recipe in food20Recipes) {
+        print('📝 [블루베리주먹밥 추적] result_id=20, required_id=${recipe['required_id']}, quantity=${recipe['quantity']}, updated_at=${recipe['updated_at']}');
+      }
+    } else {
+      print('❌ [블루베리주먹밥 추적] food_id 20에 대한 레시피 로우가 Supabase 응답에 없습니다!');
+      print('🔍 [블루베리주먹밥 추적] updatedAt 조건 확인: $updatedAt');
+      print('🔍 [블루베리주먹밥 추적] 전체 result_id 목록: ${rawData.map((r) => r['result_id']).toSet().toList()..sort()}');
+      
+      // food_id 20에 대한 직접 조회 시도
+      await _checkFood20Directly();
+    }
+    
     // 받아온 원시 데이터 상세 로그
     for (int i = 0; i < rawData.length && i < 10; i++) {
       final row = rawData[i];
@@ -85,25 +101,125 @@ class SupabaseApi {
           'required_ids': <int>[],
           'updated_at': updatedAt,
         };
-        print('🆕 [레시피 조회] 새로운 result_id 그룹 생성: $resultId');
+        if (resultId == 20) {
+          print('🆕 [블루베리주먹밥 추적] 새로운 result_id 그룹 생성: $resultId');
+        } else {
+          print('🆕 [레시피 조회] 새로운 result_id 그룹 생성: $resultId');
+        }
       }
 
       // required_id 추가
       for (int i = 0; i < quantity; i += 1) {
         groupedRecipes[resultId]!['required_ids'].add(requiredId);
       }
-      print('➕ [레시피 조회] result_id=$resultId에 required_id=$requiredId를 ${quantity}개 추가');
+      if (resultId == 20) {
+        print('➕ [블루베리주먹밥 추적] result_id=$resultId에 required_id=$requiredId를 ${quantity}개 추가');
+      } else {
+        print('➕ [레시피 조회] result_id=$resultId에 required_id=$requiredId를 ${quantity}개 추가');
+      }
     }
     
     final groupedList = groupedRecipes.values.toList();
     print('🎯 [레시피 조회] 최종 그룹핑된 레시피: ${groupedList.length}개');
     
-    // 그룹핑된 결과 상세 로그
+    // food_id 20 최종 확인
+    final food20Final = groupedList.where((group) => group['result_id'] == 20).toList();
+    if (food20Final.isNotEmpty) {
+      print('✅ [블루베리주먹밥 추적] 최종 그룹핑 결과에 food_id 20 포함됨!');
+      for (final group in food20Final) {
+        print('🎯 [블루베리주먹밥 추적] 최종: result_id=${group['result_id']}, required_ids=${group['required_ids']}, updated_at=${group['updated_at']}');
+      }
+    } else {
+      print('❌ [블루베리주먹밥 추적] 최종 그룹핑 결과에 food_id 20이 없습니다!');
+    }
+    
+    // 그룹핑된 결과 상세 로그 (20이 아닌 것들)
     for (final group in groupedList) {
-      print('📋 [레시피 조회] 그룹: result_id=${group['result_id']}, required_ids=${group['required_ids']}, updated_at=${group['updated_at']}');
+      if (group['result_id'] != 20) {
+        print('📋 [레시피 조회] 그룹: result_id=${group['result_id']}, required_ids=${group['required_ids']}, updated_at=${group['updated_at']}');
+      }
     }
     
     return groupedList;
+  }
+
+  /// 특정 음식의 레시피 직접 조회
+  Future<List<Map<String, dynamic>>> getSpecificFoodRecipe(int foodId) async {
+    print('🔍 [특정 레시피 조회] food_id $foodId 레시피 직접 조회 시작...');
+    
+    try {
+      final response = await supabase
+          .from('recipes')
+          .select('result_id, required_id, updated_at, quantity')
+          .eq('result_id', foodId);
+      
+      final rawData = List<Map<String, dynamic>>.from(response);
+      print('📊 [특정 레시피 조회] food_id $foodId 조회 결과: ${rawData.length}개');
+      
+      if (rawData.isEmpty) {
+        return [];
+      }
+      
+      // result_id로 그룹핑
+      final Map<int, Map<String, dynamic>> groupedRecipes = {};
+      
+      for (final recipe in rawData) {
+        final int resultId = recipe['result_id'];
+        final int requiredId = recipe['required_id'];
+        final String updatedAt = recipe['updated_at'];
+        final int quantity = recipe['quantity'];
+        
+        if (!groupedRecipes.containsKey(resultId)) {
+          groupedRecipes[resultId] = {
+            'result_id': resultId,
+            'required_ids': <int>[],
+            'updated_at': updatedAt,
+          };
+        }
+        
+        for (int i = 0; i < quantity; i += 1) {
+          groupedRecipes[resultId]!['required_ids'].add(requiredId);
+        }
+      }
+      
+      final result = groupedRecipes.values.toList();
+      print('🎯 [특정 레시피 조회] food_id $foodId 최종 결과: ${result.first['required_ids']}');
+      
+      return result;
+    } catch (e) {
+      print('❌ [특정 레시피 조회] food_id $foodId 조회 실패: $e');
+      return [];
+    }
+  }
+
+  /// food_id 20에 대한 직접 조회
+  Future<void> _checkFood20Directly() async {
+    try {
+      print('🔍 [블루베리주먹밥 직접조회] food_id 20에 대한 모든 레시피 직접 조회 시작...');
+      
+      final directResponse = await supabase
+          .from('recipes')
+          .select('result_id, required_id, updated_at, quantity')
+          .eq('result_id', 20);
+      
+      final directData = List<Map<String, dynamic>>.from(directResponse);
+      print('📊 [블루베리주먹밥 직접조회] food_id 20 직접 조회 결과: ${directData.length}개');
+      
+      if (directData.isNotEmpty) {
+        print('✅ [블루베리주먹밥 직접조회] DB에 food_id 20 레시피 존재함!');
+        for (final recipe in directData) {
+          print('📝 [블루베리주먹밥 직접조회] result_id=20, required_id=${recipe['required_id']}, quantity=${recipe['quantity']}, updated_at=${recipe['updated_at']}');
+        }
+        
+        // 가장 최신 updated_at 확인
+        final latestUpdatedAt = directData.map((r) => r['updated_at'] as String).reduce((a, b) => a.compareTo(b) > 0 ? a : b);
+        print('🕐 [블루베리주먹밥 직접조회] food_id 20의 가장 최신 updated_at: $latestUpdatedAt');
+      } else {
+        print('❌ [블루베리주먹밥 직접조회] DB에 food_id 20 레시피가 전혀 없음!');
+      }
+    } catch (e) {
+      print('❌ [블루베리주먹밥 직접조회] 직접 조회 실패: $e');
+    }
   }
 
   // Get user's inventory with incremental sync
