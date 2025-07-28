@@ -15,6 +15,7 @@ class FoodGridScreen extends StatefulWidget {
 
 class _FoodGridScreenState extends State<FoodGridScreen> {
   List<Food> selectedFoods = [];
+  List<Food> availableFoods = []; // 로컬 상태로 관리
   Food? resultFood;
   bool isCombinationFailed = false; // 조합 실패 상태
   Food? selectedFoodForDetail; // 상세 정보를 보여줄 재료
@@ -35,7 +36,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     _loadFoodsFromHive();
   }
 
-  /// Hive에서 음식 데이터를 로드합니다.
+  /// Hive에서 획득한 음식 데이터를 로드하고 날짜순으로 정렬합니다.
   Future<void> _loadFoodsFromHive() async {
     try {
       setState(() {
@@ -43,10 +44,21 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       });
 
       await _foodDataManager.loadFoodsFromHive();
+      
+      // 획득한 음식들만 가져와서 획득일자 빠른 순으로 정렬
+      final obtainedFoods = _foodDataManager.allFoods
+          .where((food) => food.acquiredAt != null)
+          .toList();
+      
+      // 획득일자 빠른 순으로 정렬
+      obtainedFoods.sort((a, b) => a.acquiredAt!.compareTo(b.acquiredAt!));
 
       setState(() {
+        availableFoods = obtainedFoods;
         isLoading = false;
       });
+      
+      print('✅ 획득한 음식 ${availableFoods.length}개 로드 완료 (날짜순 정렬)');
     } catch (e) {
       print('❌ Hive 데이터 로드 실패: $e');
       setState(() {
@@ -95,14 +107,20 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       isCombinationFailed = false;
     });
 
-    // 레시피 완성 처리
+    // 레시피 완성 처리 (Hive와 Supabase에 저장)
     await _foodDataManager.addCompletedRecipe(recipe);
 
-    // UI 업데이트 - 새로 추가된 음식만 리스트에 추가
+    // 획득일자 설정 후 로컬 상태에 바로 추가
+    final newFood = recipe.copyWith(acquiredAt: DateTime.now());
+
     setState(() {
-      // availableFoods에 새로 추가된 음식이 이미 포함되어 있음
-      // FoodDataManager.addCompletedRecipe에서 이미 업데이트됨
+      // 새로 획득한 음식을 availableFoods에 추가
+      availableFoods.add(newFood);
+      // 획득일자 빠른 순으로 다시 정렬
+      availableFoods.sort((a, b) => a.acquiredAt!.compareTo(b.acquiredAt!));
     });
+    
+    print('✅ 새로 획득한 음식 ${recipe.name}을 조합 화면에 바로 추가');
   }
 
   void _showFoodDetail(Food food) {
@@ -119,10 +137,6 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final stats = _foodDataManager.getProgressStats();
-    final totalCount = stats['total']!;
-    final ownedCount = stats['owned']! + selectedFoods.length;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -132,85 +146,75 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(
-                    child: Text(
-                      '$ownedCount/$totalCount',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  
+                  Expanded(
+                    child: isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : availableFoods.isEmpty // 로컬 상태 사용
+                                ? const Center(
+                                    child: Text(
+                                      '사용 가능한 재료가 없습니다.',
+                                      style: TextStyle(
+                                          fontSize: 18, color: Colors.grey),
+                                    ),
+                                  )
+                                : GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 4,
+                                      mainAxisSpacing: 8,
+                                      crossAxisSpacing: 12,
+                                      childAspectRatio: 0.6,
+                                    ),
+                                    itemCount: availableFoods.length, // 로컬 상태 사용
+                                    itemBuilder: (context, index) {
+                                      final food = availableFoods[index]; // 로컬 상태 사용
+                                      return FoodGridItem(
+                                        food: food,
+                                        onTap: () => _addToCombinationBox(food),
+                                        onLongPress: () => _showFoodDetail(food),
+                                      );
+                                    },
+                                  ),
                   ),
-                ),
-                Expanded(
-                  child: isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: _foodDataManager.availableFoods.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                    '사용 가능한 재료가 없습니다.',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.grey),
-                                  ),
-                                )
-                              : GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    mainAxisSpacing: 8,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 0.6,
-                                  ),
-                                  itemCount:
-                                      _foodDataManager.availableFoods.length,
-                                  itemBuilder: (context, index) {
-                                    final food =
-                                        _foodDataManager.availableFoods[index];
-                                    return FoodGridItem(
-                                      food: food,
-                                      onTap: () => _addToCombinationBox(food),
-                                      onLongPress: () => _showFoodDetail(food),
-                                    );
-                                  },
-                                ),
-                        ),
-                ),
-                CombinationBox(
-                  selectedFoods: selectedFoods,
-                  allFoods: _foodDataManager.allFoods,
-                  resultFood: resultFood,
-                  isCombinationFailed: isCombinationFailed,
-                  onRemoveFood: _removeFromCombinationBox,
-                  onClearCombination: _clearCombinationBox,
-                  onCompleteRecipe: (recipe) async {
-                    _onCompleteRecipe(recipe);
+                  CombinationBox(
+                    selectedFoods: selectedFoods,
+                    allFoods: _foodDataManager.allFoods,
+                    availableFoods: availableFoods,
+                    resultFood: resultFood,
+                    isCombinationFailed: isCombinationFailed,
+                    onRemoveFood: _removeFromCombinationBox,
+                    onClearCombination: _clearCombinationBox,
+                    onCompleteRecipe: (recipe) async {
+                      _onCompleteRecipe(recipe);
 
-                    // 조합 실패가 아닌 경우에만 완성 오버레이 띄우기
-                    if (recipe.id != -1) {
-                      await showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => CompleteOverlay(
-                          food: recipe,
-                          onClose: () {
-                            Navigator.of(context).pop();
-                            _clearCombinationBox();
-                          },
-                          onLongPress: () {},
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
+                      // 조합 실패가 아닌 경우에만 완성 오버레이 띄우기
+                      if (recipe.id != -1) {
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => CompleteOverlay(
+                            food: recipe,
+                            onClose: () {
+                              Navigator.of(context).pop();
+                              _clearCombinationBox();
+                            },
+                            onLongPress: () {},
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           if (selectedFoodForDetail != null)

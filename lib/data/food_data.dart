@@ -38,6 +38,35 @@ class FoodDataManager {
       _availableFoods = acquiredFoods;
 
       print('✅ Hive에서 ${foods.length}개의 음식 데이터 로드 완료');
+      
+      // food_id 20 특별 확인
+      final food20 = foods.where((food) => food.id == 20).firstOrNull;
+      if (food20 != null) {
+        print('🎯 [블루베리주먹밥 추적] FoodDataManager에서 food_id 20 확인됨');
+        print('📋 [블루베리주먹밥 추적] 이름: ${food20.name}, 레시피: ${food20.recipes}, 획득여부: ${food20.acquiredAt != null}');
+        
+        if (food20.recipes != null && food20.recipes!.isNotEmpty) {
+          print('✅ [블루베리주먹밥 추적] food_id 20에 레시피 존재: ${food20.recipes}');
+        } else {
+          print('❌ [블루베리주먹밥 추적] food_id 20에 레시피가 없음!');
+        }
+      } else {
+        print('❌ [블루베리주먹밥 추적] FoodDataManager에서 food_id 20을 찾을 수 없음!');
+      }
+      
+      // 레시피 데이터 검증 로그 추가
+      final foodsWithRecipes = foods.where((food) => food.recipes != null && food.recipes!.isNotEmpty).toList();
+      print('🍽️ [데이터 로드] 레시피가 있는 음식: ${foodsWithRecipes.length}개');
+      
+      for (final food in foodsWithRecipes) {
+        if (food.id != 20) {
+          print('📋 [데이터 로드] 음식 ${food.id}(${food.name}): 레시피 ${food.recipes}');
+        }
+      }
+      
+      if (foodsWithRecipes.isEmpty) {
+        print('⚠️ [데이터 로드] 경고: 레시피가 있는 음식이 하나도 없습니다!');
+      }
     } catch (e) {
       print('❌ Hive 데이터 로드 실패: $e');
       rethrow;
@@ -64,8 +93,15 @@ class FoodDataManager {
         ];
 
         final result = await api.insertInventory(inventoryData);
-        print('✅ 조합 완성 음식 인벤토리 추가: ${recipe.name} (ID: ${recipe.id})');
-        print('📊 인벤토리 추가 결과: $result');
+        if (result['partial_success'] == true) {
+          print('✅ 조합 완성 음식 인벤토리 추가: ${recipe.name} (ID: ${recipe.id})');
+          print('📊 인벤토리 추가 결과: 추가 ${result['success_count']}개');
+          if (result['duplicate_count'] > 0) {
+            print('ℹ️ 이미 존재했던 재료: ${result['duplicate_count']}개');
+          }
+        } else {
+          print('❌ 조합 완성 음식 인벤토리 추가 실패: ${result['error']}');
+        }
       }
     } catch (e) {
       print('❌ 조합 완성 음식 인벤토리 추가 실패: $e');

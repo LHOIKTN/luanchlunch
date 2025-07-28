@@ -22,13 +22,14 @@ class FoodAdapter extends TypeAdapter<Food> {
       imageUrl: fields[2] as String,
       recipes: (fields[3] as List?)?.cast<int>(),
       acquiredAt: fields[4] as DateTime?,
+      detail: fields[5] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Food obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class FoodAdapter extends TypeAdapter<Food> {
       ..writeByte(3)
       ..write(obj.recipes)
       ..writeByte(4)
-      ..write(obj.acquiredAt);
+      ..write(obj.acquiredAt)
+      ..writeByte(5)
+      ..write(obj.detail);
   }
 
   @override

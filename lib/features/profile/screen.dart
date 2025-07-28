@@ -132,6 +132,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       focusNode: _focusNode,
                       textInputAction: TextInputAction.done,
                       keyboardType: TextInputType.text,
+                      enableIMEPersonalizedLearning: true,
+                      autofocus: false,
                       decoration: InputDecoration(
                         hintText: '닉네임을 입력하세요',
                         hintStyle: TextStyle(

@@ -19,12 +19,16 @@ class Food extends HiveObject {
   @HiveField(4)
   final DateTime? acquiredAt; // when user acquired this food
 
+  @HiveField(5)
+  final String? detail; // detailed description from Supabase
+
   Food({
     required this.id,
     required this.name,
     required this.imageUrl,
     this.recipes,
     this.acquiredAt,
+    this.detail,
   });
 
   // Convert to Map for Supabase
@@ -33,6 +37,7 @@ class Food extends HiveObject {
       'id': id,
       'name': name,
       'image_url': imageUrl,
+      'detail': detail,
     };
   }
 
@@ -42,6 +47,7 @@ class Food extends HiveObject {
       id: map['id'],
       name: map['name'],
       imageUrl: map['image_url'],
+      detail: map['detail'],
     );
   }
 
@@ -52,6 +58,7 @@ class Food extends HiveObject {
     String? imageUrl,
     List<int>? recipes,
     DateTime? acquiredAt,
+    String? detail,
   }) {
     return Food(
       id: id ?? this.id,
@@ -59,11 +66,12 @@ class Food extends HiveObject {
       imageUrl: imageUrl ?? this.imageUrl,
       recipes: recipes ?? this.recipes,
       acquiredAt: acquiredAt ?? this.acquiredAt,
+      detail: detail ?? this.detail,
     );
   }
 
   @override
   String toString() {
-    return 'Food(id: $id, name: $name, imageUrl: $imageUrl, recipes: $recipes, acquiredAt: $acquiredAt)';
+    return 'Food(id: $id, name: $name, imageUrl: $imageUrl, recipes: $recipes, acquiredAt: $acquiredAt, detail: $detail)';
   }
 } 

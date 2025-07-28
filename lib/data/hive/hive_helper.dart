@@ -84,12 +84,53 @@ class HiveHelper {
     await _foodBox?.putAll(foodMap);
   }
 
-  // Update food recipes
+  // 개별 음식 데이터 upsert (기존 데이터 유지하면서 업데이트)
+  Future<void> upsertFood(Food food) async {
+    final existingFood = _foodBox?.get(food.id);
+    
+    if (existingFood != null) {
+      // 기존 데이터가 있으면 acquiredAt과 recipes는 유지하고 나머지는 업데이트
+      final updatedFood = Food(
+        id: food.id,
+        name: food.name,
+        imageUrl: food.imageUrl,
+        detail: food.detail,
+        acquiredAt: existingFood.acquiredAt, // 기존 획득 상태 유지
+        recipes: existingFood.recipes, // 기존 레시피 유지 (별도 동기화에서 처리)
+      );
+      await _foodBox?.put(food.id, updatedFood);
+      print('🔄 음식 ${food.id}(${food.name}) 업데이트 완료');
+    } else {
+      // 새로운 음식이면 그대로 추가
+      await _foodBox?.put(food.id, food);
+      print('➕ 음식 ${food.id}(${food.name}) 새로 추가');
+    }
+  }
+
+  // Update food recipes (완전 교체)
   Future<void> updateFoodRecipes(int foodId, List<int> recipes) async {
+    print('🔧 [Hive 업데이트] 음식 $foodId 레시피 최신 데이터로 완전 교체 시작: $recipes');
+    
     final food = _foodBox?.get(foodId);
     if (food != null) {
+      print('✅ [Hive 업데이트] 음식 $foodId 찾음: ${food.name}');
+      print('📝 [Hive 업데이트] 기존 레시피: ${food.recipes}');
+      print('🔄 [Hive 업데이트] 최신 레시피로 완전 교체: $recipes');
+      
       final updatedFood = food.copyWith(recipes: recipes);
       await _foodBox?.put(foodId, updatedFood);
+      
+      print('✅ [Hive 업데이트] 음식 $foodId 레시피 최신 데이터로 교체 완료: ${updatedFood.recipes}');
+      
+      // 업데이트 후 검증
+      final verifyFood = _foodBox?.get(foodId);
+      if (verifyFood?.recipes != null) {
+        print('🎯 [Hive 검증] 음식 $foodId 최신 데이터 검증 성공: ${verifyFood!.recipes}');
+      } else {
+        print('❌ [Hive 검증] 음식 $foodId 최신 데이터 검증 실패: 레시피가 null');
+      }
+    } else {
+      print('❌ [Hive 업데이트] 음식 $foodId를 찾을 수 없음!');
     }
   }
 
@@ -184,7 +225,7 @@ class HiveHelper {
 
     // 기본 재료들의 이름으로 ID 찾기
     final allFoods = getAllFoods();
-    final basicIngredientNames = ['쌀', '소금', '설탕', '참기름'];
+    final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕', '육수'];
     final now = DateTime.now();
     final List<Map<String, dynamic>> grantedIngredients = [];
 

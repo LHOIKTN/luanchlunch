@@ -43,7 +43,11 @@ class FoodDetailModal extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(food.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   const SizedBox(height: 12),
-                  Text('${food.name}에 대한 설명입니다. 다양한 요리에 활용할 수 있는 재료입니다.', style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+                  Text(
+                    food.detail ?? '${food.name}에 대한 설명입니다. 다양한 요리에 활용할 수 있는 재료입니다.',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
                   if (recipeFoods.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const Text('레시피', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

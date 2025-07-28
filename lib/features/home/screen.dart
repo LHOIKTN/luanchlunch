@@ -189,6 +189,8 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 20),
+          
           // 오늘의 급식 정보
           Text(
             '${_controller.getCurrentDateString()} 급식 메뉴',
