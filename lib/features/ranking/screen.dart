@@ -84,9 +84,18 @@ class _RankingScreenState extends State<RankingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 화면 크기 감지
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('랭킹'),
+        title: Text(
+          '랭킹',
+          style: TextStyle(
+            fontSize: isTablet ? 24.0 : 20.0,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -205,9 +214,22 @@ class _RankingScreenState extends State<RankingScreen> {
     final ingredientCount = _userRanking!['ingredient_count'] as int;
     final lastAcquiredAt = _userRanking!['last_acquired_at'] as String;
 
+    // 화면 크기 감지
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    // 태블릿에서 크기 조정
+    final margin = isTablet ? 24.0 : 16.0;
+    final padding = isTablet ? 20.0 : 16.0;
+    final rankSize = isTablet ? 60.0 : 50.0;
+    final rankFontSize = isTablet ? 22.0 : 18.0;
+    final userFontSize = isTablet ? 20.0 : 18.0;
+    final infoFontSize = isTablet ? 16.0 : 14.0;
+    final dateFontSize = isTablet ? 14.0 : 12.0;
+
     return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(16.0),
+      margin: EdgeInsets.all(margin),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: AppColors.primaryGradient,
@@ -228,8 +250,8 @@ class _RankingScreenState extends State<RankingScreen> {
         children: [
           // 랭킹 순위
           Container(
-            width: 50,
-            height: 50,
+            width: rankSize,
+            height: rankSize,
             decoration: BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
@@ -237,9 +259,9 @@ class _RankingScreenState extends State<RankingScreen> {
             child: Center(
               child: Text(
                 '$rank',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: rankFontSize,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -255,23 +277,23 @@ class _RankingScreenState extends State<RankingScreen> {
               children: [
                 Text(
                   user,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: userFontSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: isTablet ? 6.0 : 4.0),
                 Text(
                   '재료 $ingredientCount개 보유',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: infoFontSize,
                     color: Colors.grey.shade700,
                   ),
                 ),
                 Text(
                   '마지막 획득: ${_formatDate(lastAcquiredAt)}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: dateFontSize,
                     color: Colors.grey.shade600,
                   ),
                 ),
@@ -306,9 +328,23 @@ class _RankingScreenState extends State<RankingScreen> {
     final ingredientCount = ranking['ingredient_count'] as int;
     final lastAcquiredAt = ranking['last_acquired_at'] as String;
 
+    // 화면 크기 감지
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    // 태블릿에서 크기 조정
+    final margin = isTablet ? 24.0 : 16.0;
+    final padding = isTablet ? 20.0 : 16.0;
+    final rankSize = isTablet ? 50.0 : 40.0;
+    final rankFontSize = isTablet ? 20.0 : 16.0;
+    final userFontSize = isTablet ? 18.0 : 16.0;
+    final infoFontSize = isTablet ? 16.0 : 14.0;
+    final dateFontSize = isTablet ? 14.0 : 12.0;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      padding: const EdgeInsets.all(16.0),
+      margin: EdgeInsets.symmetric(
+          horizontal: margin, vertical: isTablet ? 6.0 : 4.0),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.0),
@@ -325,8 +361,8 @@ class _RankingScreenState extends State<RankingScreen> {
         children: [
           // 랭킹 순위
           Container(
-            width: 40,
-            height: 40,
+            width: rankSize,
+            height: rankSize,
             decoration: BoxDecoration(
               color: _getRankColor(rank),
               shape: BoxShape.circle,
@@ -334,16 +370,16 @@ class _RankingScreenState extends State<RankingScreen> {
             child: Center(
               child: Text(
                 '$rank',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: rankFontSize,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 16),
+          SizedBox(width: isTablet ? 20.0 : 16.0),
 
           // 사용자 정보
           Expanded(
@@ -352,23 +388,23 @@ class _RankingScreenState extends State<RankingScreen> {
               children: [
                 Text(
                   user,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: userFontSize,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: isTablet ? 6.0 : 4.0),
                 Text(
                   '재료 $ingredientCount개 보유',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: infoFontSize,
                     color: Colors.grey.shade600,
                   ),
                 ),
                 Text(
                   '마지막 획득: ${_formatDate(lastAcquiredAt)}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: dateFontSize,
                     color: Colors.grey.shade500,
                   ),
                 ),

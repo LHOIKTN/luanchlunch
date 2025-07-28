@@ -65,6 +65,9 @@ class PreloadData {
       // 기존 사용자의 모든 획득된 재료 데이터를 Supabase에 동기화
       await syncAllAcquiredFoods(userUUID);
 
+      // 기존 사용자에게도 기본 재료가 없으면 제공
+      await _grantBasicIngredientsToExistingUser(userUUID);
+
       return userUUID;
     }
   }
@@ -88,10 +91,12 @@ class PreloadData {
       if (food20Data.isNotEmpty) {
         print('🎯 [블루베리주먹밥 추적] foods 테이블에서 food_id 20 발견!');
         final food20 = food20Data.first;
-        print('📝 [블루베리주먹밥 추적] 음식 정보: id=${food20['id']}, name=${food20['name']}, image_url=${food20['image_url']}, updated_at=${food20['updated_at']}');
+        print(
+            '📝 [블루베리주먹밥 추적] 음식 정보: id=${food20['id']}, name=${food20['name']}, image_url=${food20['image_url']}, updated_at=${food20['updated_at']}');
       } else {
         print('❌ [블루베리주먹밥 추적] foods 테이블에 food_id 20이 없습니다!');
-        print('🔍 [블루베리주먹밥 추적] 전체 food_id 목록: ${foodsData.map((f) => f['id']).toList()..sort()}');
+        print(
+            '🔍 [블루베리주먹밥 추적] 전체 food_id 목록: ${foodsData.map((f) => f['id']).toList()..sort()}');
       }
 
       if (foodsData.isEmpty) {
@@ -116,16 +121,18 @@ class PreloadData {
         final String updatedAt = foodData['updated_at'];
 
         if (id == 20) {
-          print('🎯 [블루베리주먹밥 추적] 음식 데이터 처리 시작: ID=$id, 이름=$name, 이미지=$imageUrl');
+          print(
+              '🎯 [블루베리주먹밥 추적] 음식 데이터 처리 시작: ID=$id, 이름=$name, 이미지=$imageUrl');
           print('🔄 [블루베리주먹밥 추적] 최신 데이터로 모든 내용 교체 시작...');
         } else {
-          print('🍽️ 처리 중: ID=$id, 이름=$name, 이미지=$imageUrl (updated_at: $updatedAt)');
+          print(
+              '🍽️ 처리 중: ID=$id, 이름=$name, 이미지=$imageUrl (updated_at: $updatedAt)');
         }
 
         // 기존 음식 데이터 확인
         final existingFoods = HiveHelper.instance.getAllFoods();
         final existingFood = existingFoods.where((f) => f.id == id).firstOrNull;
-        
+
         bool needsFullUpdate = true;
         if (existingFood != null) {
           if (id == 20) {
@@ -141,7 +148,7 @@ class PreloadData {
           if (id == 20) {
             print('🔄 [블루베리주먹밥 추적] 이미지 교체 시작...');
           }
-          
+
           // 이미지 경로 처리 (기존 이미지가 있어도 새로 다운로드)
           final assetPath = 'assets/images/$imageUrl';
 
@@ -161,11 +168,13 @@ class PreloadData {
               } else {
                 print('⬇️ 최신 이미지 다운로드 중: $name');
               }
-              final downloadedPath = await downloadAndSaveImage(imageUrl, forceRedownload: true);
+              final downloadedPath =
+                  await downloadAndSaveImage(imageUrl, forceRedownload: true);
               if (downloadedPath != null) {
                 localImagePath = downloadedPath;
                 if (id == 20) {
-                  print('✅ [블루베리주먹밥 추적] 최신 이미지 다운로드 완료: $name -> $localImagePath');
+                  print(
+                      '✅ [블루베리주먹밥 추적] 최신 이미지 다운로드 완료: $name -> $localImagePath');
                 } else {
                   print('✅ 최신 이미지 다운로드 완료: $name -> $localImagePath');
                 }
@@ -199,7 +208,7 @@ class PreloadData {
         );
 
         updatedFoodList.add(updatedFood);
-        
+
         if (id == 20) {
           print('✅ [블루베리주먹밥 추적] Food 객체 생성 완료 - 최신 데이터로 교체됨');
         }
@@ -213,7 +222,7 @@ class PreloadData {
       // Hive에 업데이트된 음식들만 저장 (기존 데이터 유지하면서 업데이트)
       for (final updatedFood in updatedFoodList) {
         await HiveHelper.instance.upsertFood(updatedFood);
-        
+
         if (updatedFood.id == 20) {
           print('✅ [블루베리주먹밥 추적] Hive 개별 업데이트 완료');
         }
@@ -224,7 +233,8 @@ class PreloadData {
       final savedFood20 = savedFoods.where((food) => food.id == 20).firstOrNull;
       if (savedFood20 != null) {
         print('✅ [블루베리주먹밥 추적] Hive 저장 후 food_id 20 확인됨: ${savedFood20.name}');
-        print('📝 [블루베리주먹밥 추적] 최신 정보: 이미지=${savedFood20.imageUrl}, 설명=${savedFood20.detail}');
+        print(
+            '📝 [블루베리주먹밥 추적] 최신 정보: 이미지=${savedFood20.imageUrl}, 설명=${savedFood20.detail}');
       } else {
         print('❌ [블루베리주먹밥 추적] Hive 저장 후 food_id 20을 찾을 수 없음!');
       }
@@ -265,7 +275,7 @@ class PreloadData {
       if (recipesData.isEmpty) {
         print('✅ 새로운 레시피 데이터가 없습니다.');
         print('❌ [블루베리주먹밥 추적] recipesData가 비어있어서 food_id 20 처리 불가');
-        
+
         // food_id 20이 DB에 있는지 확인 후 강제 재동기화
         await _handleMissingRecipes();
         return;
@@ -275,13 +285,15 @@ class PreloadData {
       print('📝 이는 모두 최신 데이터이므로 기존 레시피를 완전히 교체합니다.');
 
       // food_id 20 확인
-      final food20Data = recipesData.where((recipe) => recipe['result_id'] == 20).toList();
+      final food20Data =
+          recipesData.where((recipe) => recipe['result_id'] == 20).toList();
       if (food20Data.isNotEmpty) {
         print('🎯 [블루베리주먹밥 추적] recipesData에서 food_id 20 발견!');
       } else {
         print('❌ [블루베리주먹밥 추적] recipesData에 food_id 20이 없습니다!');
-        print('🔍 [블루베리주먹밥 추적] 전체 result_id 목록: ${recipesData.map((r) => r['result_id']).toList()}');
-        
+        print(
+            '🔍 [블루베리주먹밥 추적] 전체 result_id 목록: ${recipesData.map((r) => r['result_id']).toList()}');
+
         // food_id 20이 누락된 경우 강제 재동기화 시도
         await _handleMissingRecipes();
       }
@@ -295,14 +307,16 @@ class PreloadData {
         final String updatedAt = recipe['updated_at'];
 
         if (resultId == 20) {
-          print('📝 [블루베리주먹밥 추적] 음식 $resultId 레시피 최신 데이터로 완전 교체: $requiredIds (updated_at: $updatedAt)');
+          print(
+              '📝 [블루베리주먹밥 추적] 음식 $resultId 레시피 최신 데이터로 완전 교체: $requiredIds (updated_at: $updatedAt)');
         } else {
-          print('📝 [레시피 처리] 음식 $resultId 레시피 최신 데이터로 완전 교체: $requiredIds (updated_at: $updatedAt)');
+          print(
+              '📝 [레시피 처리] 음식 $resultId 레시피 최신 데이터로 완전 교체: $requiredIds (updated_at: $updatedAt)');
         }
 
         // 각 음식의 레시피 정보를 최신 데이터로 완전 교체
         await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
-        
+
         if (resultId == 20) {
           print('✅ [블루베리주먹밥 추적] 음식 $resultId 레시피 최신 데이터로 Hive 교체 완료');
         } else {
@@ -323,7 +337,7 @@ class PreloadData {
       }
 
       print('✅ 레시피 데이터 동기화 완료: ${recipesData.length}개 조합 최신 데이터로 교체');
-      
+
       // 동기화 후 Hive에서 레시피가 포함된 음식들 확인
       await _verifyRecipesInHive();
     } catch (e) {
@@ -335,38 +349,39 @@ class PreloadData {
   /// 누락된 레시피 처리 (강제 재동기화)
   Future<void> _handleMissingRecipes() async {
     print('🔄 [강제 재동기화] 누락된 레시피 처리 시작...');
-    
+
     try {
       // 전체 레시피 다시 가져오기 (updatedAt 조건 없이)
       print('📋 [강제 재동기화] 전체 레시피 재조회 시작...');
       final allRecipesData = await api.getRecipes('1970-01-01');
-      
+
       if (allRecipesData.isEmpty) {
         print('❌ [강제 재동기화] 전체 레시피도 비어있음');
         return;
       }
-      
+
       print('📊 [강제 재동기화] 전체 레시피 ${allRecipesData.length}개 발견');
-      
+
       // food_id 20 확인
-      final food20Data = allRecipesData.where((recipe) => recipe['result_id'] == 20).toList();
+      final food20Data =
+          allRecipesData.where((recipe) => recipe['result_id'] == 20).toList();
       if (food20Data.isNotEmpty) {
         print('✅ [강제 재동기화] 전체 조회에서 food_id 20 발견!');
-        
+
         // food_id 20 레시피만 강제 업데이트
         for (final recipe in food20Data) {
           final int resultId = recipe['result_id'];
           final List<int> requiredIds = List<int>.from(recipe['required_ids']);
-          
+
           print('🔧 [강제 재동기화] food_id $resultId 레시피 강제 업데이트: $requiredIds');
           await HiveHelper.instance.updateFoodRecipes(resultId, requiredIds);
           print('✅ [강제 재동기화] food_id $resultId 레시피 업데이트 완료');
         }
-        
+
         // 레시피 마지막 갱신일을 현재 시간으로 리셋 (다음에는 정상 동기화되도록)
-        await HiveHelper.instance.setLastUpdatedAt('recipes', DateTime.now().toIso8601String());
+        await HiveHelper.instance
+            .setLastUpdatedAt('recipes', DateTime.now().toIso8601String());
         print('📅 [강제 재동기화] 레시피 마지막 갱신일 리셋 완료');
-        
       } else {
         print('❌ [강제 재동기화] 전체 조회에서도 food_id 20을 찾을 수 없음');
       }
@@ -378,12 +393,15 @@ class PreloadData {
   /// Hive에 저장된 레시피 데이터 검증
   Future<void> _verifyRecipesInHive() async {
     print('🔍 [레시피 검증] Hive에 저장된 레시피 데이터 확인 시작...');
-    
+
     final allFoods = HiveHelper.instance.getAllFoods();
-    final foodsWithRecipes = allFoods.where((food) => food.recipes != null && food.recipes!.isNotEmpty).toList();
-    
-    print('📊 [레시피 검증] 전체 음식: ${allFoods.length}개, 레시피 있는 음식: ${foodsWithRecipes.length}개');
-    
+    final foodsWithRecipes = allFoods
+        .where((food) => food.recipes != null && food.recipes!.isNotEmpty)
+        .toList();
+
+    print(
+        '📊 [레시피 검증] 전체 음식: ${allFoods.length}개, 레시피 있는 음식: ${foodsWithRecipes.length}개');
+
     // food_id 20 특별 확인
     final food20 = allFoods.where((food) => food.id == 20).firstOrNull;
     if (food20 != null) {
@@ -391,18 +409,19 @@ class PreloadData {
         print('✅ [블루베리주먹밥 추적] Hive에서 food_id 20 레시피 확인: ${food20.recipes}');
       } else {
         print('❌ [블루베리주먹밥 추적] Hive에서 food_id 20의 레시피가 null 또는 비어있음!');
-        print('🔍 [블루베리주먹밥 추적] food_id 20 정보: 이름=${food20.name}, 레시피=${food20.recipes}');
+        print(
+            '🔍 [블루베리주먹밥 추적] food_id 20 정보: 이름=${food20.name}, 레시피=${food20.recipes}');
       }
     } else {
       print('❌ [블루베리주먹밥 추적] Hive에서 food_id 20 음식 자체를 찾을 수 없음!');
     }
-    
+
     for (final food in foodsWithRecipes) {
       if (food.id != 20) {
         print('🍽️ [레시피 검증] 음식 ${food.id}(${food.name}): 레시피 ${food.recipes}');
       }
     }
-    
+
     if (foodsWithRecipes.isEmpty) {
       print('⚠️ [레시피 검증] 경고: Hive에 레시피가 포함된 음식이 하나도 없습니다!');
     }
@@ -411,15 +430,15 @@ class PreloadData {
   /// 개발자용: 레시피 강제 전체 재동기화
   Future<void> forceRecipesResync() async {
     print('🔄 [개발자 도구] 레시피 강제 전체 재동기화 시작...');
-    
+
     try {
       // 레시피 마지막 갱신일을 1970년으로 리셋
       await HiveHelper.instance.setLastUpdatedAt('recipes', '1970-01-01');
       print('📅 [개발자 도구] 레시피 마지막 갱신일 리셋: 1970-01-01');
-      
+
       // 전체 레시피 재동기화
       await _syncRecipes();
-      
+
       print('✅ [개발자 도구] 레시피 강제 전체 재동기화 완료');
     } catch (e) {
       print('❌ [개발자 도구] 레시피 강제 재동기화 실패: $e');
@@ -429,15 +448,15 @@ class PreloadData {
   /// 개발자용: 특정 음식의 레시피 직접 업데이트
   Future<void> forceUpdateSpecificRecipe(int foodId) async {
     print('🔄 [개발자 도구] food_id $foodId 레시피 직접 업데이트 시작...');
-    
+
     try {
       // 해당 음식의 레시피 직접 조회
       final response = await api.getSpecificFoodRecipe(foodId);
-      
+
       if (response.isNotEmpty) {
         final recipe = response.first;
         final List<int> requiredIds = List<int>.from(recipe['required_ids']);
-        
+
         print('📝 [개발자 도구] food_id $foodId 레시피 직접 업데이트: $requiredIds');
         await HiveHelper.instance.updateFoodRecipes(foodId, requiredIds);
         print('✅ [개발자 도구] food_id $foodId 레시피 업데이트 완료');
@@ -525,7 +544,8 @@ class PreloadData {
             userUUID, basicIngredientIds);
 
         if (result['partial_success'] == true) {
-          print('✅ Supabase 기본 재료 추가 성공: 추가 ${result['data']?['success_count'] ?? 0}개');
+          print(
+              '✅ Supabase 기본 재료 추가 성공: 추가 ${result['data']?['success_count'] ?? 0}개');
           if (result['data']?['duplicate_count'] > 0) {
             print('ℹ️ 이미 존재하는 재료: ${result['data']?['duplicate_count']}개');
           }
@@ -544,6 +564,59 @@ class PreloadData {
       print('🎁 새 사용자 기본 재료 자동 획득 완료');
     } catch (e) {
       print('❌ 기본 재료 자동 획득 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
+    }
+  }
+
+  Future<void> _grantBasicIngredientsToExistingUser(String userUUID) async {
+    print('🎁 기존 사용자 기본 재료 확인 및 제공 시작...');
+
+    try {
+      // 현재 획득한 재료들 확인
+      final acquiredFoods = HiveHelper.instance.getAcquiredFoods();
+      final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕', '육수'];
+
+      // 기본 재료 중 획득하지 않은 것들 찾기
+      final missingBasicIngredients = <String>[];
+      for (final name in basicIngredientNames) {
+        final hasIngredient = acquiredFoods.any((food) => food.name == name);
+        if (!hasIngredient) {
+          missingBasicIngredients.add(name);
+        }
+      }
+
+      if (missingBasicIngredients.isEmpty) {
+        print('ℹ️ 기존 사용자가 이미 모든 기본 재료를 보유하고 있습니다.');
+        return;
+      }
+
+      print('📋 누락된 기본 재료: ${missingBasicIngredients.join(', ')}');
+
+      // Hive에 기본 재료들 획득 상태 추가
+      final grantedIngredients =
+          await HiveHelper.instance.grantBasicIngredients();
+      print('✅ Hive 기본 재료 추가 성공: ${grantedIngredients.length}개');
+
+      // Supabase에 기본 재료들 추가
+      if (grantedIngredients.isNotEmpty) {
+        final basicIngredientIds = grantedIngredients
+            .map((ingredient) => ingredient['id'] as int)
+            .toList();
+
+        print('🔄 Supabase에 기본 재료 추가 중: $basicIngredientIds');
+        final result = await api.addBasicIngredientsToInventory(
+            userUUID, basicIngredientIds);
+
+        if (result['success'] == true) {
+          print('✅ Supabase 기본 재료 추가 성공: ${result['processed_count']}개');
+        } else {
+          print('⚠️ Supabase 기본 재료 추가 실패: ${result['error']}');
+        }
+      }
+
+      print('🎁 기존 사용자 기본 재료 제공 완료');
+    } catch (e) {
+      print('❌ 기존 사용자 기본 재료 제공 실패: $e');
       print('❌ 에러 상세: ${e.toString()}');
     }
   }
@@ -646,7 +719,7 @@ class PreloadData {
 // 스크립트 실행용 main 함수
 void main(List<String> args) async {
   final preloader = PreloadData();
-  
+
   if (args.isNotEmpty) {
     final command = args[0];
     switch (command) {

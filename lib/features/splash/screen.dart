@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/preload.dart';
+import '../home/screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,6 +16,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -52,6 +55,34 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     _fadeController.forward();
     _scaleController.forward();
+    _startPreload(); // 애니메이션과 동시에 로딩 시작
+  }
+
+  void _startPreload() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('데이터프리로드 실행');
+      final preloader = PreloadData();
+      await preloader.preloadAllData();
+
+      // 프리로드 완료 후 홈 화면으로 이동
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      print('프리로드 실패: $e');
+      // 에러가 발생해도 홈 화면으로 이동
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    }
   }
 
   @override
@@ -94,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(25),
                         child: Image.asset(
-                          'assets/icon.png',
+                          'assets/images/icon.png',
                           width: 160,
                           height: 160,
                           fit: BoxFit.cover,
@@ -137,14 +168,28 @@ class _SplashScreenState extends State<SplashScreen>
               builder: (context, child) {
                 return Opacity(
                   opacity: _fadeAnimation.value,
-                  child: const SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
+                  child: Column(
+                    children: [
+                      const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                      if (_isLoading) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          '데이터를 불러오는 중...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               },

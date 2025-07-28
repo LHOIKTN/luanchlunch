@@ -184,18 +184,27 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   }
 
   Widget _buildDailyMenuContent() {
+    // 화면 크기 감지
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    // 태블릿에서 패딩과 폰트 크기 조정
+    final padding = isTablet ? 24.0 : 16.0;
+    final titleFontSize = isTablet ? 24.0 : 20.0;
+    final spacing = isTablet ? 24.0 : 20.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
-          
+          SizedBox(height: spacing),
+
           // 오늘의 급식 정보
           Text(
             '${_controller.getCurrentDateString()} 급식 메뉴',
-            style: const TextStyle(
-              fontSize: 20,
+            style: TextStyle(
+              fontSize: titleFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),

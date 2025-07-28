@@ -44,12 +44,12 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       });
 
       await _foodDataManager.loadFoodsFromHive();
-      
+
       // 획득한 음식들만 가져와서 획득일자 빠른 순으로 정렬
       final obtainedFoods = _foodDataManager.allFoods
           .where((food) => food.acquiredAt != null)
           .toList();
-      
+
       // 획득일자 빠른 순으로 정렬
       obtainedFoods.sort((a, b) => a.acquiredAt!.compareTo(b.acquiredAt!));
 
@@ -57,7 +57,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
         availableFoods = obtainedFoods;
         isLoading = false;
       });
-      
+
       print('✅ 획득한 음식 ${availableFoods.length}개 로드 완료 (날짜순 정렬)');
     } catch (e) {
       print('❌ Hive 데이터 로드 실패: $e');
@@ -119,7 +119,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
       // 획득일자 빠른 순으로 다시 정렬
       availableFoods.sort((a, b) => a.acquiredAt!.compareTo(b.acquiredAt!));
     });
-    
+
     print('✅ 새로 획득한 음식 ${recipe.name}을 조합 화면에 바로 추가');
   }
 
@@ -137,6 +137,19 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 화면 크기 감지
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    // 태블릿에서 그리드 설정 조정
+    final crossAxisCount = isTablet ? 6 : 4;
+    final childAspectRatio = isTablet ? 0.8 : 0.6;
+    final horizontalPadding = isTablet ? 24.0 : 16.0;
+    final verticalPadding = isTablet ? 24.0 : 16.0;
+    final fontSize = isTablet ? 20.0 : 18.0;
+    final spacing = isTablet ? 12.0 : 8.0;
+    final crossSpacing = isTablet ? 16.0 : 12.0;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -147,43 +160,43 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(horizontalPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  
+                  SizedBox(height: isTablet ? 24.0 : 20.0),
                   Expanded(
                     child: isLoading
                         ? const Center(
                             child: CircularProgressIndicator(),
                           )
                         : availableFoods.isEmpty // 로컬 상태 사용
-                                ? const Center(
-                                    child: Text(
-                                      '사용 가능한 재료가 없습니다.',
-                                      style: TextStyle(
-                                          fontSize: 18, color: Colors.grey),
-                                    ),
-                                  )
-                                : GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 4,
-                                      mainAxisSpacing: 8,
-                                      crossAxisSpacing: 12,
-                                      childAspectRatio: 0.6,
-                                    ),
-                                    itemCount: availableFoods.length, // 로컬 상태 사용
-                                    itemBuilder: (context, index) {
-                                      final food = availableFoods[index]; // 로컬 상태 사용
-                                      return FoodGridItem(
-                                        food: food,
-                                        onTap: () => _addToCombinationBox(food),
-                                        onLongPress: () => _showFoodDetail(food),
-                                      );
-                                    },
-                                  ),
+                            ? Center(
+                                child: Text(
+                                  '사용 가능한 재료가 없습니다.',
+                                  style: TextStyle(
+                                      fontSize: fontSize, color: Colors.grey),
+                                ),
+                              )
+                            : GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: spacing,
+                                  crossAxisSpacing: crossSpacing,
+                                  childAspectRatio: childAspectRatio,
+                                ),
+                                itemCount: availableFoods.length, // 로컬 상태 사용
+                                itemBuilder: (context, index) {
+                                  final food =
+                                      availableFoods[index]; // 로컬 상태 사용
+                                  return FoodGridItem(
+                                    food: food,
+                                    onTap: () => _addToCombinationBox(food),
+                                    onLongPress: () => _showFoodDetail(food),
+                                  );
+                                },
+                              ),
                   ),
                   CombinationBox(
                     selectedFoods: selectedFoods,
