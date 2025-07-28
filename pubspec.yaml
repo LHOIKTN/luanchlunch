@@ -1,5 +1,5 @@
 name: launchlunch
-description: "A new Flutter project."
+description: "한입두입 - 급식 재료 수집 게임"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -50,6 +50,7 @@ dev_dependencies:
     build_runner: ^2.4.6
     flutter_test:
         sdk: flutter
+    flutter_launcher_icons: ^0.13.1
 
     # The "flutter_lints" package below contains a set of recommended lints to
     # encourage good coding practices. The lint set provided by the package is
@@ -57,6 +58,27 @@ dev_dependencies:
     # package. See that file for information about deactivating specific lint
     # rules and activating additional ones.
     flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+    android: "launcher_icon"
+    ios: true
+    image_path: "assets/icon.png"
+    min_sdk_android: 21
+    image_path_android: "assets/icon.png"
+    adaptive_icon_background: "#FFFFFF"
+    adaptive_icon_foreground: "assets/icon.png"
+    web:
+        generate: true
+        image_path: "assets/icon.png"
+        background_color: "#FFFFFF"
+        theme_color: "#9C27B0"
+    windows:
+        generate: true
+        image_path: "assets/icon.png"
+        icon_size: 48
+    macos:
+        generate: true
+        image_path: "assets/icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

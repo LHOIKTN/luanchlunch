@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -78,23 +78,27 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Opacity(
                     opacity: _fadeAnimation.value,
                     child: Container(
-                      width: 120,
-                      height: 120,
+                      width: 160,
+                      height: 160,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(25),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primaryWithOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            blurRadius: 25,
+                            spreadRadius: 8,
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.restaurant,
-                        size: 60,
-                        color: Colors.white,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(25),
+                        child: Image.asset(
+                          'assets/icon.png',
+                          width: 160,
+                          height: 160,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
@@ -111,11 +115,11 @@ class _SplashScreenState extends State<SplashScreen>
                 return Opacity(
                   opacity: _fadeAnimation.value,
                   child: const Text(
-                    'Launch Lunch',
+                    '한입두입',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -124,24 +128,6 @@ class _SplashScreenState extends State<SplashScreen>
             ),
 
             const SizedBox(height: 8),
-
-            // 부제목
-            AnimatedBuilder(
-              animation: _fadeAnimation,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: const Text(
-                    '맛있는 점심을 찾아보세요',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                );
-              },
-            ),
 
             const SizedBox(height: 60),
 
