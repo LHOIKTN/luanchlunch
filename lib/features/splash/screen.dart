@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/preload.dart';
-import '../home/screen.dart';
+import '../game_start/screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -68,18 +68,18 @@ class _SplashScreenState extends State<SplashScreen>
       final preloader = PreloadData();
       await preloader.preloadAllData();
 
-      // 프리로드 완료 후 홈 화면으로 이동
+      // 프리로드 완료 후 게임 시작 화면으로 이동
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const GameStartScreen()),
         );
       }
     } catch (e) {
       print('프리로드 실패: $e');
-      // 에러가 발생해도 홈 화면으로 이동
+      // 에러가 발생해도 게임 시작 화면으로 이동
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const GameStartScreen()),
         );
       }
     }
@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF0E6FF), // 게임 시작 화면과 같은 연한 보라색
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

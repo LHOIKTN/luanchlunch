@@ -137,12 +137,21 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 화면 크기 감지
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
+    // 화면 크기 및 방향 감지
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    final isTablet = screenSize.shortestSide >= 600;
+    final isLandscape = screenWidth > screenHeight;
 
-    // 태블릿에서 그리드 설정 조정
-    final crossAxisCount = isTablet ? 6 : 4;
+    // 디바이스 타입과 방향에 따른 그리드 설정 조정
+    int crossAxisCount;
+    if (isTablet) {
+      crossAxisCount = isLandscape ? 8 : 6; // 태블릿: 가로 8개, 세로 6개
+    } else {
+      crossAxisCount = 4; // 모바일: 항상 4개
+    }
+    
     final childAspectRatio = isTablet ? 0.8 : 0.6;
     final horizontalPadding = isTablet ? 24.0 : 16.0;
     final verticalPadding = isTablet ? 24.0 : 16.0;
@@ -216,6 +225,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                           barrierDismissible: false,
                           builder: (_) => CompleteOverlay(
                             food: recipe,
+                            allFoods: _foodDataManager.allFoods, // 모든 음식 목록 전달
                             onClose: () {
                               Navigator.of(context).pop();
                               _clearCombinationBox();

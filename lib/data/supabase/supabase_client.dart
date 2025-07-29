@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'supabase_keys.dart'; 
-import 'http_client.dart';  // 개발 환경용 SSL 검증 완화
-
-
-
+import 'supabase_keys.dart';
+import 'http_client.dart'; // 개발 환경용 SSL 검증 완화
 
 late final SupabaseClient supabase;
 bool _isInitialized = false;
 
+// 외부에서 접근 가능한 getter
+bool get isSupabaseInitialized => _isInitialized;
+
 Future<void> initSupabase() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Check if Supabase is already initialized
   if (_isInitialized) {
     return; // Already initialized, just return
   }
-  
+
   // Check if keys are available
   if (supabaseUrl == null || supabaseAnonKey == null) {
     throw Exception('Supabase URL 또는 Anon Key가 설정되지 않았습니다.');
@@ -33,7 +33,7 @@ Future<void> initSupabase() async {
     // 개발 환경용 SSL 검증 완화
     debug: true,
   );
-  
+
   supabase = Supabase.instance.client;
   _isInitialized = true;
 }

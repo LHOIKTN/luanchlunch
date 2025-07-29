@@ -16,15 +16,15 @@ class PreloadData {
     print('🔄 데이터 프리로드 시작...');
 
     try {
+      // 각각의 동기화를 개별적으로 try-catch 처리
       await _syncFoods();
       final userUUID = await _syncUser();
       await _syncRecipes();
       await _syncMeals();
-      // _syncInventory는 _syncUser 내부에서 이미 호출됨 (기존 사용자의 경우)
 
       print('✅ 데이터 프리로드 완료!');
     } catch (e) {
-      print('❌ 데이터 프리로드 실패: $e');
+      print('⚠️ 데이터 프리로드 중 오류 발생, 오프라인 모드로 계속 진행: $e');
     }
   }
 
@@ -34,8 +34,16 @@ class PreloadData {
     print('📋 저장된 유저 UUID: $userUUID');
 
     if (userUUID == null) {
+      print('🆕 새 유저 생성 시작...');
+
+      // 먼저 Hive에 기본 재료 추가 (오프라인에서도 플레이 가능하도록)
+      print('🎁 오프라인 모드 대비 기본 재료 먼저 추가...');
+      final grantedIngredients =
+          await HiveHelper.instance.grantBasicIngredients();
+      print('✅ Hive 기본 재료 추가 성공: ${grantedIngredients.length}개');
+
       // DB에 유저 추가
-      print('🆕 새 유저 생성 중...');
+      print('🆕 Supabase에 새 유저 생성 중...');
       final newUserInfo = await api.createUser();
       print('📊 생성된 유저 정보: $newUserInfo');
 
@@ -44,10 +52,12 @@ class PreloadData {
         await HiveHelper.instance.saveUserInfo(newUserInfo);
         print('✅ 사용자 정보 Hive 저장 완료');
 
-        // 새 사용자에게 기본 재료 자동 획득
-        await _grantBasicIngredientsToNewUser(newUserInfo['uuid']);
+        // 기존 동기화 함수로 Hive 획득 재료들을 Supabase에 동기화
+        await syncAllAcquiredFoods(newUserInfo['uuid']);
+
+        return newUserInfo['uuid'];
       } else {
-        print('❌ 사용자 정보 생성 실패');
+        print('❌ 사용자 정보 생성 실패 (Hive 기본 재료는 이미 추가됨)');
       }
     } else {
       print('✅ 기존 유저 확인됨: $userUUID');
@@ -83,6 +93,12 @@ class PreloadData {
       print('🔗 Supabase API 인스턴스 생성 완료');
 
       final foodsData = await api.getFoodDatas(lastUpdatedAt);
+
+      // Supabase 연결 실패 시 빈 리스트 반환
+      if (foodsData == null) {
+        print('⚠️ Supabase 연결 실패, 기존 로컬 데이터 사용');
+        return;
+      }
       print('📊 Supabase 응답 데이터: ${foodsData.length}개');
       print('📋 첫 번째 데이터: ${foodsData.isNotEmpty ? foodsData.first : "없음"}');
 

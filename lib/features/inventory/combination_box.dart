@@ -195,8 +195,8 @@ class CombinationBox extends StatelessWidget {
                       ),
                       child: Image.asset(
                         'assets/images/cooking.png',
-                        width: 24,
-                        height: 24,
+                        width: 22,
+                        height: 22,
                       ),
                     ),
                   );
@@ -234,8 +234,8 @@ class CombinationBox extends StatelessWidget {
                       ]),
                       child: Image.asset(
                         'assets/images/cooking.png',
-                        width: 24,
-                        height: 24,
+                        width: 22,
+                        height: 22,
                       ),
                     ),
                   );
