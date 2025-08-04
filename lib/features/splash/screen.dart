@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0E6FF), // 게임 시작 화면과 같은 연한 보라색
+      backgroundColor: AppColors.background, // 제일 연한 색으로 변경
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

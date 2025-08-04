@@ -65,7 +65,7 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: const _DailyMenuPage(),
       ),
@@ -147,14 +147,14 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
+        backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_controller.availableDates.isEmpty) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
+        backgroundColor: AppColors.background,
         body: Center(
           child: Text(
             '사용 가능한 날짜가 없습니다.',
@@ -165,7 +165,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       body: PageView.builder(
         controller: _pageController,
         onPageChanged: _onPageChanged,

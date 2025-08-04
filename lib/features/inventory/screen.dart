@@ -5,6 +5,7 @@ import 'package:launchlunch/features/inventory/food_detail_modal.dart';
 import 'package:launchlunch/features/inventory/complete_overlay.dart';
 import 'package:launchlunch/features/inventory/food_grid_item.dart';
 import 'package:launchlunch/features/inventory/combination_box.dart';
+import 'package:launchlunch/theme/app_colors.dart';
 
 class FoodGridScreen extends StatefulWidget {
   const FoodGridScreen({super.key});
@@ -160,6 +161,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     final crossSpacing = isTablet ? 16.0 : 12.0;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         elevation: 0,

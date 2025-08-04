@@ -274,7 +274,7 @@ class _GameStartScreenState extends State<GameStartScreen>
     _initializeParticles(screenWidth, screenHeight, context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0E6FF), // 연한 보라색 (더 진하게)
+      backgroundColor: AppColors.background, // 제일 연한 색으로 변경
       body: Stack(
         children: [
           // 이미지 파티클들

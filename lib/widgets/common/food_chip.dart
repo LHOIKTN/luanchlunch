@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/food.dart';
+import '../../theme/app_colors.dart';
 
 class FoodChip extends StatelessWidget {
   final Food food;
@@ -17,13 +18,13 @@ class FoodChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isAcquired 
-            ? const Color(0xFF4CAF50).withOpacity(0.2)
-            : const Color(0xFF4CAF50).withOpacity(0.1),
+            ? AppColors.success.withOpacity(0.2)
+            : AppColors.success.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isAcquired 
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFF4CAF50).withOpacity(0.3),
+              ? AppColors.success
+              : AppColors.success.withOpacity(0.3),
           width: isAcquired ? 2 : 1,
         ),
       ),
@@ -39,8 +40,8 @@ class FoodChip extends StatelessWidget {
                 Icons.fastfood,
                 size: 16,
                 color: isAcquired 
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF4CAF50).withOpacity(0.7),
+                    ? AppColors.success
+                    : AppColors.success.withOpacity(0.7),
               ),
             )
           else
@@ -48,8 +49,8 @@ class FoodChip extends StatelessWidget {
               Icons.fastfood,
               size: 16,
               color: isAcquired 
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFF4CAF50).withOpacity(0.7),
+                  ? AppColors.success
+                  : AppColors.success.withOpacity(0.7),
             ),
           const SizedBox(width: 6),
           Text(
@@ -58,16 +59,16 @@ class FoodChip extends StatelessWidget {
               fontSize: 12,
               fontWeight: isAcquired ? FontWeight.bold : FontWeight.w500,
               color: isAcquired 
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFF4CAF50).withOpacity(0.7),
+                  ? AppColors.success
+                  : AppColors.success.withOpacity(0.7),
             ),
           ),
           if (isAcquired) ...[
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.check_circle,
               size: 12,
-              color: Color(0xFF4CAF50),
+              color: AppColors.success,
             ),
           ],
         ],

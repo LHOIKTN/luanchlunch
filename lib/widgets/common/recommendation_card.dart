@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 class RecommendationCard extends StatelessWidget {
   final String title;
@@ -19,11 +20,11 @@ class RecommendationCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: AppColors.shadowLight,
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -56,18 +57,18 @@ class RecommendationCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.star,
                       size: 16,
-                      color: Colors.amber,
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 4),
                     Text(

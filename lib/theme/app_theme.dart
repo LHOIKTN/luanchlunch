@@ -22,6 +22,9 @@ class AppTheme {
         onError: AppColors.textWhite,
       ),
 
+      // 폰트 패밀리 설정
+      fontFamily: 'HakgyoansimDunggeunmiso',
+
       // 앱바 테마
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
@@ -179,6 +182,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
+      fontFamily: 'HakgyoansimDunggeunmiso',
       colorScheme: ColorScheme.dark(
         primary: AppColors.primary,
         primaryContainer: AppColors.primaryDark,

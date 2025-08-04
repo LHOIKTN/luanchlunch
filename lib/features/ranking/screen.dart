@@ -89,6 +89,7 @@ class _RankingScreenState extends State<RankingScreen> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           '랭킹',

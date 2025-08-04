@@ -12,10 +12,10 @@ class AppColors {
   static const Color secondaryLight = Color(0xFFE4E1DF); // 가장 연한 색
   static const Color secondaryDark = Color(0xFF27322A);  // 매우 진한 색
 
-  // 배경 색상들
+  // 배경 색상들 - 모두 제일 연한 색으로 변경
   static const Color background = Color(0xFFE4E1DF);     // 가장 연한 색을 배경으로
-  static const Color surface = Colors.white;
-  static const Color cardBackground = Colors.white;
+  static const Color surface = Color(0xFFE4E1DF);        // 가장 연한 색으로 변경
+  static const Color cardBackground = Color(0xFFE4E1DF); // 가장 연한 색으로 변경
 
   // 텍스트 색상들
   static const Color textPrimary = Color(0xFF27322A);    // 가장 진한 색을 주 텍스트로

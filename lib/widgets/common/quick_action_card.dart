@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 class QuickActionCard extends StatelessWidget {
   final IconData icon;
@@ -21,11 +22,11 @@ class QuickActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: AppColors.shadowLight,
               spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, 2),
@@ -37,7 +38,7 @@ class QuickActionCard extends StatelessWidget {
             Icon(
               icon,
               size: 32,
-              color: const Color(0xFF4CAF50),
+              color: AppColors.success,
             ),
             const SizedBox(height: 8),
             Text(
@@ -50,9 +51,9 @@ class QuickActionCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: AppColors.textSecondary,
               ),
             ),
           ],
