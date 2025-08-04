@@ -158,16 +158,13 @@ class CombinationBox extends StatelessWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.withOpacity(0.5)),
                     ),
-                    child: Opacity(
-                      opacity: 0.6,
-                      child: matchedRecipe.imageUrl.startsWith('assets/')
-                          ? Image.asset(matchedRecipe.imageUrl, height: 48)
-                          : Image.file(File(matchedRecipe.imageUrl), height: 48),
-                    ),
+                    child: matchedRecipe.imageUrl.startsWith('assets/')
+                        ? Image.asset(matchedRecipe.imageUrl, height: 48)
+                        : Image.file(File(matchedRecipe.imageUrl), height: 48),
                   );
                 } else if (canCombine) {
                   // cooking.png 활성화(컬러, 하늘색 배경, 작게)
