@@ -47,6 +47,7 @@ class IngredientAcquisitionCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.secondaryDark,
                 ),
               ),
             ],
@@ -79,7 +80,7 @@ class IngredientAcquisitionCard extends StatelessWidget {
                 '획득한 재료가 없습니다.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: AppColors.secondaryDark,
                   fontStyle: FontStyle.italic,
                 ),
               ),

@@ -416,7 +416,7 @@ class _GameStartScreenState extends State<GameStartScreen>
                       style: TextStyle(
                         fontSize: 64,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: AppColors.secondaryDark,
                         letterSpacing: 2.0,
                         shadows: [
                           Shadow(

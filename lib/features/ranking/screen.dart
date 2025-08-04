@@ -281,6 +281,7 @@ class _RankingScreenState extends State<RankingScreen> {
                   style: TextStyle(
                     fontSize: userFontSize,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryDark,
                   ),
                 ),
                 SizedBox(height: isTablet ? 6.0 : 4.0),
@@ -392,6 +393,7 @@ class _RankingScreenState extends State<RankingScreen> {
                   style: TextStyle(
                     fontSize: userFontSize,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.secondaryDark,
                   ),
                 ),
                 SizedBox(height: isTablet ? 6.0 : 4.0),
@@ -433,7 +435,9 @@ class _RankingScreenState extends State<RankingScreen> {
   String _formatDate(String dateString) {
     try {
       final date = DateTime.parse(dateString);
-      return '${date.month}월 ${date.day}일';
+      // 한국 시간대로 변환 (UTC+9)
+      final koreaTime = date.toUtc().add(const Duration(hours: 9));
+      return '${koreaTime.month}월 ${koreaTime.day}일 ${koreaTime.hour.toString().padLeft(2, '0')}:${koreaTime.minute.toString().padLeft(2, '0')}:${koreaTime.second.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateString;
     }

@@ -123,7 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF333333),
+                        color: AppColors.secondaryDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -155,7 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       style: const TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF333333),
+                        color: AppColors.secondaryDark,
                       ),
                     ),
                     const SizedBox(height: 16),

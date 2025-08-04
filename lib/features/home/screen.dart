@@ -158,7 +158,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
         body: Center(
           child: Text(
             '사용 가능한 날짜가 없습니다.',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: TextStyle(fontSize: 16, color: AppColors.secondaryDark),
           ),
         ),
       );
@@ -206,6 +206,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
             style: TextStyle(
               fontSize: titleFontSize,
               fontWeight: FontWeight.bold,
+              color: AppColors.secondaryDark,
             ),
           ),
 
@@ -253,7 +254,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
                 '이 날짜에는 급식이 없습니다.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: AppColors.secondaryDark,
                   fontStyle: FontStyle.italic,
                 ),
               ),

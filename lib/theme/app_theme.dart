@@ -93,7 +93,7 @@ class AppTheme {
         unselectedItemColor: AppColors.textHint,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.white,
       ),
 
       // 스캐폴드 배경색
