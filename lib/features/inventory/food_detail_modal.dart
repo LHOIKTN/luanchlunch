@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:launchlunch/models/food.dart';
 import 'dart:io';
+import 'package:launchlunch/theme/app_colors.dart';
 
 class FoodDetailModal extends StatelessWidget {
   final Food food;
@@ -41,16 +42,16 @@ class FoodDetailModal extends StatelessWidget {
                     ? Image.asset(food.imageUrl, width: 80, height: 80, fit: BoxFit.contain)
                     : Image.file(File(food.imageUrl), width: 80, height: 80, fit: BoxFit.contain),
                   const SizedBox(height: 16),
-                  Text(food.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                  Text(food.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.secondaryDark), textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   Text(
                     food.detail ?? '${food.name}에 대한 설명입니다. 다양한 요리에 활용할 수 있는 재료입니다.',
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    style: const TextStyle(fontSize: 14, color: AppColors.secondaryDark),
                     textAlign: TextAlign.center,
                   ),
                   if (recipeFoods.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Text('레시피', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('레시피', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.secondaryDark)),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -64,7 +65,7 @@ class FoodDetailModal extends StatelessWidget {
                                 ? Image.asset(f.imageUrl, width: 40, height: 40)
                                 : Image.file(File(f.imageUrl), width: 40, height: 40),
                               const SizedBox(height: 4),
-                              Text(f.name, style: const TextStyle(fontSize: 12)),
+                              Text(f.name, style: const TextStyle(fontSize: 12, color: AppColors.secondaryDark)),
                             ],
                           ),
                         ),
