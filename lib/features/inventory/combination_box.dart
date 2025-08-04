@@ -68,15 +68,9 @@ class CombinationBox extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.borderMedium),
-                  ),
-                  child: Image.asset(
-                    'assets/images/cooking.png',
-                    width: 32,
-                    height: 32,
-                    color: Colors.white,
                   ),
                 );
               }
