@@ -48,7 +48,7 @@ class CombinationBox extends StatelessWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryLight,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.secondary),
                     ),
@@ -56,8 +56,8 @@ class CombinationBox extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         food.imageUrl.startsWith('assets/')
-                            ? Image.asset(food.imageUrl, height: 32)
-                            : Image.file(File(food.imageUrl), height: 32),
+                            ? Image.asset(food.imageUrl, height: 40)
+                            : Image.file(File(food.imageUrl), height: 40),
                       ],
                     ),
                   ),
@@ -123,7 +123,7 @@ class CombinationBox extends StatelessWidget {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.primary),
                       ),
@@ -140,7 +140,7 @@ class CombinationBox extends StatelessWidget {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.error),
                         ),
@@ -184,13 +184,17 @@ class CombinationBox extends StatelessWidget {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: AppColors.secondaryLight,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.secondaryDark),
                       ),
-                      child: Image.asset(
-                        'assets/images/cooking.png',
-                        width: 22,
-                        height: 22,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(
+                          'assets/images/cooking.png',
+                          width: 28,
+                          height: 28,
+                        ),
                       ),
                     ),
                   );
@@ -202,34 +206,38 @@ class CombinationBox extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.secondaryDark),
                     ),
-                    child: ColorFiltered(
-                      colorFilter: const ColorFilter.matrix(<double>[
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        1,
-                        0,
-                      ]),
-                      child: Image.asset(
-                        'assets/images/cooking.png',
-                        width: 22,
-                        height: 22,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ColorFiltered(
+                        colorFilter: const ColorFilter.matrix(<double>[
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                        ]),
+                        child: Image.asset(
+                          'assets/images/cooking.png',
+                          width: 28,
+                          height: 28,
+                        ),
                       ),
                     ),
                   );
