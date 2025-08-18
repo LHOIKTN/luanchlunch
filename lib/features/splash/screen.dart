@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../utils/preload.dart';
-import '../game_start/screen.dart';
+import 'package:launchlunch/features/game_start/screen.dart';
+import 'package:launchlunch/utils/preload.dart';
+import 'package:launchlunch/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,13 +49,15 @@ class _SplashScreenState extends State<SplashScreen>
     ));
 
     _startAnimations();
+    _startPreload(); // 애니메이션과 동시에 로딩 시작
   }
 
   void _startAnimations() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     _fadeController.forward();
+
+    await Future.delayed(const Duration(milliseconds: 500));
     _scaleController.forward();
-    _startPreload(); // 애니메이션과 동시에 로딩 시작
   }
 
   void _startPreload() async {
@@ -64,7 +66,6 @@ class _SplashScreenState extends State<SplashScreen>
     });
 
     try {
-      print('데이터프리로드 실행');
       final preloader = PreloadData();
       await preloader.preloadAllData();
 
@@ -76,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       print('프리로드 실패: $e');
-      // 에러가 발생해도 게임 시작 화면으로 이동
+      // 에러가 발생해도 게임 시작 화면으로 이동 (오프라인 모드)
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const GameStartScreen()),
@@ -95,12 +96,12 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background, // 제일 연한 색으로 변경
+      backgroundColor: AppColors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 로고 영역
+            // 로고 애니메이션
             AnimatedBuilder(
               animation: Listenable.merge([_fadeAnimation, _scaleAnimation]),
               builder: (context, child) {
@@ -109,34 +110,29 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Opacity(
                     opacity: _fadeAnimation.value,
                     child: Container(
-                      width: 160,
-                      height: 160,
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryWithOpacity(0.3),
-                            blurRadius: 25,
-                            spreadRadius: 8,
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(25),
-                        child: Image.asset(
-                          'assets/images/icon.png',
-                          width: 160,
-                          height: 160,
-                          fit: BoxFit.cover,
-                        ),
+                      child: const Icon(
+                        Icons.restaurant,
+                        size: 60,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 );
               },
             ),
-
             const SizedBox(height: 40),
 
             // 앱 이름
@@ -151,49 +147,47 @@ class _SplashScreenState extends State<SplashScreen>
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
-                      letterSpacing: 1.2,
+                      fontFamily: 'HakgyoansimDunggeunmiso',
                     ),
                   ),
                 );
               },
             ),
 
-            const SizedBox(height: 8),
-
-            const SizedBox(height: 60),
+            const SizedBox(height: 20),
 
             // 로딩 인디케이터
-            AnimatedBuilder(
-              animation: _fadeAnimation,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: Column(
-                    children: [
-                      const SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.primary),
+            if (_isLoading)
+              AnimatedBuilder(
+                animation: _fadeAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeAnimation.value,
+                    child: const Column(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary),
+                          ),
                         ),
-                      ),
-                      if (_isLoading) ...[
-                        const SizedBox(height: 16),
-                        const Text(
+                        SizedBox(height: 16),
+                        Text(
                           '데이터를 불러오는 중...',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: AppColors.textHint,
+                            fontFamily: 'HakgyoansimDunggeunmiso',
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

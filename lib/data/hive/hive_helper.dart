@@ -15,15 +15,37 @@ class HiveHelper {
   static Box<DailyMeal>? _mealBox;
   static Box<String>? _metadataBox;
   static Box<String>? _userBox;
+  static bool _isInitialized = false;
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(FoodAdapter());
-    Hive.registerAdapter(DailyMealAdapter());
-    _foodBox = await Hive.openBox<Food>(_foodBoxName);
-    _mealBox = await Hive.openBox<DailyMeal>(_mealBoxName);
-    _metadataBox = await Hive.openBox<String>(_metadataBoxName);
-    _userBox = await Hive.openBox<String>(_userBoxName);
+    // 이미 초기화되었으면 중복 초기화 방지
+    if (_isInitialized) {
+      return;
+    }
+
+    try {
+      await Hive.initFlutter();
+
+      // 어댑터 등록 (중복 등록 방지)
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(FoodAdapter());
+      }
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(DailyMealAdapter());
+      }
+
+      // 박스들 열기
+      _foodBox = await Hive.openBox<Food>(_foodBoxName);
+      _mealBox = await Hive.openBox<DailyMeal>(_mealBoxName);
+      _metadataBox = await Hive.openBox<String>(_metadataBoxName);
+      _userBox = await Hive.openBox<String>(_userBoxName);
+
+      _isInitialized = true;
+    } catch (e) {
+      print('❌ Hive 초기화 실패: $e');
+      _isInitialized = false;
+      rethrow;
+    }
   }
 
   // Metadata management for last updated_at times
@@ -87,7 +109,7 @@ class HiveHelper {
   // 개별 음식 데이터 upsert (기존 데이터 유지하면서 업데이트)
   Future<void> upsertFood(Food food) async {
     final existingFood = _foodBox?.get(food.id);
-    
+
     if (existingFood != null) {
       // 기존 데이터가 있으면 acquiredAt과 recipes는 유지하고 나머지는 업데이트
       final updatedFood = Food(
@@ -110,18 +132,19 @@ class HiveHelper {
   // Update food recipes (완전 교체)
   Future<void> updateFoodRecipes(int foodId, List<int> recipes) async {
     print('🔧 [Hive 업데이트] 음식 $foodId 레시피 최신 데이터로 완전 교체 시작: $recipes');
-    
+
     final food = _foodBox?.get(foodId);
     if (food != null) {
       print('✅ [Hive 업데이트] 음식 $foodId 찾음: ${food.name}');
       print('📝 [Hive 업데이트] 기존 레시피: ${food.recipes}');
       print('🔄 [Hive 업데이트] 최신 레시피로 완전 교체: $recipes');
-      
+
       final updatedFood = food.copyWith(recipes: recipes);
       await _foodBox?.put(foodId, updatedFood);
-      
-      print('✅ [Hive 업데이트] 음식 $foodId 레시피 최신 데이터로 교체 완료: ${updatedFood.recipes}');
-      
+
+      print(
+          '✅ [Hive 업데이트] 음식 $foodId 레시피 최신 데이터로 교체 완료: ${updatedFood.recipes}');
+
       // 업데이트 후 검증
       final verifyFood = _foodBox?.get(foodId);
       if (verifyFood?.recipes != null) {
