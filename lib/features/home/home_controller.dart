@@ -20,7 +20,7 @@ class HomeController {
     print('📊 초기 Hive 급식 데이터: ${allMeals.length}개');
 
     // 실제 오늘 날짜 (한국 시간)
-    final today = DateTime.now().toUtc().add(const Duration(hours: 9));
+    final today = DateTime.now();
     final todayDate = _formatDate(today);
     print('📅 오늘 날짜 (한국 시간): $todayDate');
 
@@ -178,7 +178,7 @@ class HomeController {
         return _getDateString(date);
       }
     }
-    return _getDateString(DateTime.now().toUtc().add(const Duration(hours: 9)));
+    return _getDateString(DateTime.now());
   }
 
   String _formatDate(DateTime date) {

@@ -6,6 +6,9 @@ import 'package:launchlunch/features/inventory/complete_overlay.dart';
 import 'package:launchlunch/features/inventory/food_grid_item.dart';
 import 'package:launchlunch/features/inventory/combination_box.dart';
 import 'package:launchlunch/theme/app_colors.dart';
+import 'package:launchlunch/utils/date_helper.dart';
+import 'package:launchlunch/utils/developer_mode.dart';
+import 'package:launchlunch/data/hive/hive_helper.dart';
 
 class FoodGridScreen extends StatefulWidget {
   const FoodGridScreen({super.key});
@@ -21,6 +24,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   bool isCombinationFailed = false; // 조합 실패 상태
   Food? selectedFoodForDetail; // 상세 정보를 보여줄 재료
   bool isLoading = true; // 로딩 상태
+  bool _isDeveloperModeEnabled = false; // 개발자 모드 상태
 
   final FoodDataManager _foodDataManager = FoodDataManager();
 
@@ -28,6 +32,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   void initState() {
     super.initState();
     _loadFoodsFromHive();
+    _loadDeveloperModeStatus();
   }
 
   @override
@@ -35,6 +40,43 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     super.didChangeDependencies();
     // 화면이 다시 활성화될 때마다 데이터 새로고침
     _loadFoodsFromHive();
+    _loadDeveloperModeStatus();
+  }
+
+  void _loadDeveloperModeStatus() async {
+    final isEnabled = await DeveloperMode.isEnabled();
+    setState(() {
+      _isDeveloperModeEnabled = isEnabled;
+    });
+  }
+
+  /// 날짜 제한 확인
+  bool _isDateRestrictionEnabled() {
+    // 개발자 모드가 활성화되어 있으면 날짜 제한 해제
+    if (_isDeveloperModeEnabled) {
+      return false;
+    }
+    return true; // 개발자 모드가 비활성화되어 있으면 날짜 제한 적용
+  }
+
+  /// 해당 날짜의 음식인지 확인
+  bool _isTodayFood(Food food) {
+    if (!_isDateRestrictionEnabled()) {
+      return true; // 개발자 모드면 모든 음식 허용
+    }
+
+    // 급식 데이터에서 해당 음식이 오늘 날짜에 포함되는지 확인
+    final meals = HiveHelper.instance.getAllMeals();
+    final currentDate = DateHelper.getCurrentOrTestDate();
+
+    for (final meal in meals) {
+      if (DateHelper.isTodayMeal(meal.lunchDate) &&
+          meal.foods.contains(food.id)) {
+        return true;
+      }
+    }
+
+    return false; // 오늘 날짜에 해당하지 않음
   }
 
   /// Hive에서 획득한 음식 데이터를 로드하고 날짜순으로 정렬합니다.
@@ -70,6 +112,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
 
   void _addToCombinationBox(Food food) {
     if (selectedFoods.length >= 3) return;
+
     setState(() {
       selectedFoods.add(food);
       resultFood = null; // 재료가 바뀌면 항상 결과 초기화
@@ -152,7 +195,7 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     } else {
       crossAxisCount = 4; // 모바일: 항상 4개
     }
-    
+
     final childAspectRatio = isTablet ? 0.8 : 0.6;
     final horizontalPadding = isTablet ? 24.0 : 16.0;
     final verticalPadding = isTablet ? 24.0 : 16.0;
@@ -176,6 +219,33 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: isTablet ? 24.0 : 20.0),
+
+                  // 개발자 모드 상태 표시
+                  if (_isDeveloperModeEnabled)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.developer_mode, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text(
+                            '개발자 모드: 날짜 제한 해제됨',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   Expanded(
                     child: isLoading
                         ? const Center(

@@ -90,17 +90,20 @@ class PreloadData {
     print('📅 음식 마지막 갱신일: $lastUpdatedAt');
 
     try {
-      print('🔗 Supabase API 인스턴스 생성 완료');
-
+      print('🔗 Supabase API 호출 시작...');
       final foodsData = await api.getFoodDatas(lastUpdatedAt);
+      print('📊 Supabase 응답 받음: ${foodsData?.length ?? 0}개');
 
       // Supabase 연결 실패 시 빈 리스트 반환
       if (foodsData == null) {
         print('⚠️ Supabase 연결 실패, 기존 로컬 데이터 사용');
         return;
       }
+
       print('📊 Supabase 응답 데이터: ${foodsData.length}개');
-      print('📋 첫 번째 데이터: ${foodsData.isNotEmpty ? foodsData.first : "없음"}');
+      if (foodsData.isNotEmpty) {
+        print('📋 첫 번째 데이터: ${foodsData.first}');
+      }
 
       // food_id 20 확인
       final food20Data = foodsData.where((food) => food['id'] == 20).toList();

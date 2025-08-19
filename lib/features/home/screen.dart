@@ -7,6 +7,7 @@ import 'package:launchlunch/features/home/home_controller.dart';
 import 'package:launchlunch/features/home/widgets/menu_list_card.dart';
 import 'package:launchlunch/features/home/widgets/ingredients_section.dart';
 import 'package:launchlunch/features/home/widgets/ingredient_acquisition_card.dart';
+import 'package:launchlunch/utils/developer_mode.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,12 +85,14 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   bool _isLoading = true;
   late PageController _pageController;
   late HomeController _controller;
+  bool _isDeveloperModeEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _controller = HomeController();
     _initializeData();
+    _loadDeveloperModeStatus();
   }
 
   @override
@@ -104,6 +107,14 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
     // 화면이 다시 활성화될 때마다 데이터 새로고침
     print('🔄 DailyMenuPage 활성화 - 데이터 새로고침');
     _loadMealData();
+    _loadDeveloperModeStatus();
+  }
+
+  void _loadDeveloperModeStatus() async {
+    final isEnabled = await DeveloperMode.isEnabled();
+    setState(() {
+      _isDeveloperModeEnabled = isEnabled;
+    });
   }
 
   Future<void> _initializeData() async {
@@ -199,6 +210,32 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: spacing),
+
+          // 개발자 모드 상태 표시
+          if (_isDeveloperModeEnabled)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.developer_mode, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Text(
+                    '개발자 모드: 날짜 제한 해제됨',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // 오늘의 급식 정보
           Text(

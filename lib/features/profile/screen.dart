@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:launchlunch/data/hive/hive_helper.dart';
 import 'package:launchlunch/data/supabase/api_service.dart';
 import 'package:launchlunch/theme/app_colors.dart';
+import 'package:launchlunch/utils/developer_mode.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,16 +16,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final SupabaseApi _api = SupabaseApi();
+  bool _isDeveloperModeEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadNickname();
+    _loadDeveloperModeStatus();
   }
 
   void _loadNickname() {
     final nickname = HiveHelper.instance.getNickname();
     _nicknameController.text = nickname;
+  }
+
+  void _loadDeveloperModeStatus() async {
+    final isEnabled = await DeveloperMode.isEnabled();
+    setState(() {
+      _isDeveloperModeEnabled = isEnabled;
+    });
+  }
+
+  void _handleNicknameTap() async {
+    // 닉네임이 "gattaca"가 아니면 조용히 아무 일도 하지 않음
+    final isGattaca = await DeveloperMode.isGattacaNickname();
+    if (!isGattaca) {
+      return;
+    }
+
+    // 탭 처리
+    final toggled = await DeveloperMode.handleNicknameTap();
+    if (toggled) {
+      // 개발자 모드 상태가 변경되었으면 UI 업데이트
+      _loadDeveloperModeStatus();
+
+      // 현재 개발자 모드 상태를 직접 확인하여 메시지 표시
+      final isEnabled = await DeveloperMode.isEnabled();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEnabled ? '개발자 모드가 활성화되었습니다' : '개발자 모드가 비활성화되었습니다'),
+            backgroundColor: isEnabled ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _saveNickname() async {
@@ -99,6 +137,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 20),
 
+              // 개발자 모드 상태 표시
+              if (_isDeveloperModeEnabled)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.developer_mode, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Text(
+                        '개발자 모드 활성화됨',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 닉네임 설정 섹션
               Container(
                 width: double.infinity,
@@ -118,12 +182,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '닉네임',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryDark,
+                    GestureDetector(
+                      onTap: _handleNicknameTap,
+                      child: const Text(
+                        '닉네임',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.secondaryDark,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

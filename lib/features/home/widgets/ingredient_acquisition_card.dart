@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:launchlunch/models/meal.dart';
 import 'package:launchlunch/models/food.dart';
 import 'package:launchlunch/theme/app_colors.dart';
+import 'package:launchlunch/utils/date_helper.dart';
+import 'package:launchlunch/utils/developer_mode.dart';
 
-class IngredientAcquisitionCard extends StatelessWidget {
+class IngredientAcquisitionCard extends StatefulWidget {
   final DailyMeal meal;
   final List<Food> availableFoods;
   final VoidCallback? onAcquirePressed;
@@ -16,7 +18,53 @@ class IngredientAcquisitionCard extends StatelessWidget {
   });
 
   @override
+  State<IngredientAcquisitionCard> createState() =>
+      _IngredientAcquisitionCardState();
+}
+
+class _IngredientAcquisitionCardState extends State<IngredientAcquisitionCard> {
+  bool _isDeveloperModeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeveloperModeStatus();
+  }
+
+  void _loadDeveloperModeStatus() async {
+    final isEnabled = await DeveloperMode.isEnabled();
+    setState(() {
+      _isDeveloperModeEnabled = isEnabled;
+    });
+  }
+
+  /// 날짜 제한 확인
+  bool _isDateRestrictionEnabled() {
+    // 개발자 모드가 활성화되어 있으면 날짜 제한 해제
+    if (_isDeveloperModeEnabled) {
+      return false;
+    }
+    return true; // 개발자 모드가 비활성화되어 있으면 날짜 제한 적용
+  }
+
+  /// 오늘 날짜의 급식인지 확인
+  bool _isTodayMeal() {
+    if (!_isDateRestrictionEnabled()) {
+      return true; // 개발자 모드면 모든 날짜 허용
+    }
+    return DateHelper.isTodayMeal(widget.meal.lunchDate);
+  }
+
+  /// 획득 버튼 활성화 여부
+  bool _isAcquireButtonEnabled() {
+    return _isTodayMeal();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isToday = _isTodayMeal();
+    final isButtonEnabled = _isAcquireButtonEnabled();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -37,13 +85,17 @@ class IngredientAcquisitionCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                meal.isAcquired ? Icons.check_circle : Icons.shopping_basket,
-                color: meal.isAcquired ? AppColors.success : AppColors.primary,
+                widget.meal.isAcquired
+                    ? Icons.check_circle
+                    : Icons.shopping_basket,
+                color: widget.meal.isAcquired
+                    ? AppColors.success
+                    : AppColors.primary,
                 size: 24,
               ),
               const SizedBox(width: 8),
               Text(
-                meal.isAcquired ? '획득한 재료' : '재료 획득',
+                widget.meal.isAcquired ? '획득한 재료' : '재료 획득',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -53,10 +105,10 @@ class IngredientAcquisitionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          if (meal.isAcquired) ...[
+          if (widget.meal.isAcquired) ...[
             // 획득한 재료 표시
-            if (availableFoods.isNotEmpty) ...[
-              ...availableFoods.map((food) => Padding(
+            if (widget.availableFoods.isNotEmpty) ...[
+              ...widget.availableFoods.map((food) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
@@ -90,30 +142,23 @@ class IngredientAcquisitionCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: onAcquirePressed,
+                onPressed: isButtonEnabled ? widget.onAcquirePressed : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor:
+                      isButtonEnabled ? AppColors.primary : Colors.grey,
                   foregroundColor: AppColors.textWhite,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  '재료 얻기',
-                  style: TextStyle(
+                child: Text(
+                  isButtonEnabled ? '재료 얻기' : '오늘 날짜가 아닙니다',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '급식실에서 급식시간에 재료를 획득할 수 있습니다.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textHint,
               ),
             ),
           ],

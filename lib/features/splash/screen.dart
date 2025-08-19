@@ -61,27 +61,42 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startPreload() async {
+    print('🔄 스플래시 화면에서 데이터 프리로드 시작...');
+
     setState(() {
       _isLoading = true;
     });
 
     try {
+      print('📦 PreloadData 인스턴스 생성...');
       final preloader = PreloadData();
+
+      print('🚀 preloadAllData() 호출 시작...');
       await preloader.preloadAllData();
+      print('✅ preloadAllData() 완료!');
 
       // 프리로드 완료 후 게임 시작 화면으로 이동
       if (mounted) {
+        print('🎮 GameStartScreen으로 이동...');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const GameStartScreen()),
         );
+      } else {
+        print('⚠️ 위젯이 마운트되지 않음 - 화면 이동 취소');
       }
     } catch (e) {
-      print('프리로드 실패: $e');
+      print('❌ 프리로드 실패: $e');
+      print('❌ 에러 상세: ${e.toString()}');
+      print('❌ 스택 트레이스: ${StackTrace.current}');
+
       // 에러가 발생해도 게임 시작 화면으로 이동 (오프라인 모드)
       if (mounted) {
+        print('🔄 오프라인 모드로 GameStartScreen 이동...');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const GameStartScreen()),
         );
+      } else {
+        print('⚠️ 위젯이 마운트되지 않음 - 오프라인 모드 이동도 취소');
       }
     }
   }
