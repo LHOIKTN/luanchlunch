@@ -1,7 +1,10 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/food.dart';
 import '../../models/meal.dart';
 import 'dart:convert';
+import 'dart:io'; // 파일 삭제를 위한 임포트
 
 class HiveHelper {
   static final HiveHelper instance = HiveHelper._internal();
@@ -276,5 +279,179 @@ class HiveHelper {
 
     print('🎁 기본 재료 자동 획득 완료: ${grantedIngredients.length}개');
     return grantedIngredients;
+  }
+
+  // ===== 캐시/데이터 지우기 기능 =====
+
+  /// 이미지 캐시 지우기 (앱 문서 디렉토리의 이미지 파일들)
+  Future<void> clearImageCache() async {
+    try {
+      print('🗑️ 이미지 캐시 지우기 시작...');
+
+      // Flutter의 getApplicationDocumentsDirectory에서 이미지 파일들 삭제
+      // (downloadImage에서 저장한 파일들)
+      final directory = await _getApplicationDocumentsDirectory();
+      if (directory.existsSync()) {
+        final files = directory.listSync();
+        int deletedCount = 0;
+
+        for (final file in files) {
+          if (file is File) {
+            final fileName = file.path.split('/').last;
+            // 이미지 파일 확장자 확인
+            if (fileName.endsWith('.jpg') ||
+                fileName.endsWith('.jpeg') ||
+                fileName.endsWith('.png') ||
+                fileName.endsWith('.webp')) {
+              try {
+                await file.delete();
+                deletedCount++;
+                print('🗑️ 이미지 파일 삭제: $fileName');
+              } catch (e) {
+                print('⚠️ 파일 삭제 실패: $fileName - $e');
+              }
+            }
+          }
+        }
+
+        print('✅ 이미지 캐시 삭제 완료: ${deletedCount}개 파일');
+      } else {
+        print('ℹ️ 앱 문서 디렉토리가 존재하지 않습니다.');
+      }
+    } catch (e) {
+      print('❌ 이미지 캐시 삭제 실패: $e');
+    }
+  }
+
+  /// 사용자 획득 데이터만 지우기 (음식 기본 정보는 유지)
+  Future<void> clearUserAcquiredData() async {
+    try {
+      print('🗑️ 사용자 획득 데이터 지우기 시작...');
+
+      // 모든 음식의 acquiredAt을 null로 변경
+      final allFoods = getAllFoods();
+      int clearedCount = 0;
+
+      for (final food in allFoods) {
+        if (food.acquiredAt != null) {
+          final clearedFood = food.copyWith(acquiredAt: null);
+          await _foodBox?.put(food.id, clearedFood);
+          clearedCount++;
+        }
+      }
+
+      // 급식 획득 상태 초기화
+      final allMeals = getAllMeals();
+      for (final meal in allMeals) {
+        if (meal.isAcquired) {
+          final clearedMeal = meal.copyWith(isAcquired: false);
+          await _mealBox?.put(meal.lunchDate, clearedMeal);
+        }
+      }
+
+      print('✅ 사용자 획득 데이터 삭제 완료: ${clearedCount}개 음식');
+    } catch (e) {
+      print('❌ 사용자 획득 데이터 삭제 실패: $e');
+    }
+  }
+
+  /// 사용자 정보 지우기 (닉네임, UUID 등)
+  Future<void> clearUserInfo() async {
+    try {
+      print('🗑️ 사용자 정보 지우기 시작...');
+
+      // 닉네임 삭제
+      await _userBox?.delete('nickname');
+
+      // UUID 및 사용자 정보 삭제
+      await _metadataBox?.delete('uuid');
+      await _metadataBox?.delete('user_info');
+
+      print('✅ 사용자 정보 삭제 완료');
+    } catch (e) {
+      print('❌ 사용자 정보 삭제 실패: $e');
+    }
+  }
+
+  /// 동기화 메타데이터 지우기 (last_updated_at 등)
+  Future<void> clearSyncMetadata() async {
+    try {
+      print('🗑️ 동기화 메타데이터 지우기 시작...');
+
+      // last_updated_at 관련 키들 삭제
+      final keys = _metadataBox?.keys.toList() ?? [];
+      int deletedCount = 0;
+
+      for (final key in keys) {
+        if (key.toString().startsWith('last_updated_')) {
+          await _metadataBox?.delete(key);
+          deletedCount++;
+        }
+      }
+
+      print('✅ 동기화 메타데이터 삭제 완료: ${deletedCount}개 항목');
+    } catch (e) {
+      print('❌ 동기화 메타데이터 삭제 실패: $e');
+    }
+  }
+
+  /// 전체 앱 데이터 지우기 (기본 음식/급식 데이터는 유지, 사용자 데이터만 삭제)
+  Future<void> clearAllUserData() async {
+    try {
+      print('🗑️ 전체 사용자 데이터 지우기 시작...');
+
+      // 사용자 획득 데이터 삭제
+      await clearUserAcquiredData();
+
+      // 사용자 정보 삭제
+      await clearUserInfo();
+
+      // 동기화 메타데이터 삭제
+      await clearSyncMetadata();
+
+      // 이미지 캐시 삭제
+      await clearImageCache();
+
+      print('✅ 전체 사용자 데이터 삭제 완료');
+    } catch (e) {
+      print('❌ 전체 사용자 데이터 삭제 실패: $e');
+    }
+  }
+
+  /// 앱 완전 초기화 (모든 Hive 박스 데이터 삭제)
+  Future<void> clearAllAppData() async {
+    try {
+      print('🗑️ 앱 완전 초기화 시작...');
+
+      // 모든 박스 클리어
+      await _foodBox?.clear();
+      await _mealBox?.clear();
+      await _metadataBox?.clear();
+      await _userBox?.clear();
+
+      // SharedPreferences도 완전 삭제 (개발자 모드 상태 포함)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      print('🗑️ SharedPreferences 전체 삭제 완료');
+
+      // 이미지 캐시 삭제
+      await clearImageCache();
+
+      print('✅ 앱 완전 초기화 완료 (Hive + SharedPreferences + 이미지 캐시)');
+    } catch (e) {
+      print('❌ 앱 완전 초기화 실패: $e');
+    }
+  }
+
+  // 헬퍼 메서드: 앱 문서 디렉토리 가져오기
+  Future<Directory> _getApplicationDocumentsDirectory() async {
+    try {
+      // path_provider를 사용하여 실제 앱 문서 디렉토리 가져오기
+      return await getApplicationDocumentsDirectory();
+    } catch (e) {
+      print('⚠️ 앱 문서 디렉토리 가져오기 실패: $e');
+      // 폴백으로 임시 디렉토리 사용
+      return await getTemporaryDirectory();
+    }
   }
 }

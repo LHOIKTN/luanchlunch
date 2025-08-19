@@ -25,13 +25,6 @@ class DeveloperMode {
     print('🔧 개발자 모드 ${!currentState ? '활성화' : '비활성화'}');
   }
 
-  /// 개발자 모드 비활성화
-  static Future<void> disable() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyDeveloperMode, false);
-    print('🔧 개발자 모드 비활성화');
-  }
-
   /// 닉네임이 "gattaca"인지 확인
   static Future<bool> isGattacaNickname() async {
     final nickname = await HiveHelper.instance.getNickname();
@@ -47,34 +40,50 @@ class DeveloperMode {
 
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    final lastTapTime = prefs.getInt(_keyLastTapTime);
-    final currentTapCount = prefs.getInt(_keyTapCount) ?? 0;
 
-    // 마지막 탭으로부터 3초가 지났으면 카운트 리셋
-    if (lastTapTime != null) {
-      final lastTap = DateTime.fromMillisecondsSinceEpoch(lastTapTime);
-      if (now.difference(lastTap) > _tapTimeout) {
-        await prefs.setInt(_keyTapCount, 1);
-        await prefs.setInt(_keyLastTapTime, now.millisecondsSinceEpoch);
-        return false;
-      }
+    final lastTapTimeString = prefs.getString(_keyLastTapTime);
+    final lastTapTime =
+        lastTapTimeString != null ? DateTime.parse(lastTapTimeString) : null;
+    int tapCount = prefs.getInt(_keyTapCount) ?? 0;
+
+    if (lastTapTime == null || now.difference(lastTapTime) > _tapTimeout) {
+      // 타임아웃이 지났거나 첫 탭이면 카운트 초기화
+      tapCount = 1;
+    } else {
+      // 타임아웃 내에 탭했으면 카운트 증가
+      tapCount++;
     }
 
-    // 탭 카운트 증가
-    final newTapCount = currentTapCount + 1;
-    await prefs.setInt(_keyTapCount, newTapCount);
-    await prefs.setInt(_keyLastTapTime, now.millisecondsSinceEpoch);
+    await prefs.setString(_keyLastTapTime, now.toIso8601String());
+    await prefs.setInt(_keyTapCount, tapCount);
 
-    print('👆 닉네임 탭: $newTapCount/$_requiredTaps');
+    print('개발자 모드 탭: $tapCount회');
 
-    // 7번 탭했으면 개발자 모드 토글
-    if (newTapCount >= _requiredTaps) {
-      await toggle();
-      await prefs.setInt(_keyTapCount, 0); // 카운트 리셋
-      return true;
+    if (tapCount >= _requiredTaps) {
+      await prefs.setInt(_keyTapCount, 0); // 카운트 초기화
+      await prefs.remove(_keyLastTapTime); // 마지막 탭 시간 초기화
+      await toggle(); // 개발자 모드 토글
+      return true; // 상태 변경됨
     }
+    return false; // 상태 변경 없음
+  }
 
-    return false;
+  /// 개발자 모드 비활성화 및 관련 데이터 삭제
+  static Future<void> disable() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // 개발자 모드 비활성화
+      await prefs.setBool(_keyDeveloperMode, false);
+
+      // 탭 관련 데이터 삭제
+      await prefs.remove(_keyLastTapTime);
+      await prefs.remove(_keyTapCount);
+
+      print('🔧 개발자 모드 완전 비활성화 및 데이터 삭제 완료');
+    } catch (e) {
+      print('❌ 개발자 모드 비활성화 실패: $e');
+    }
   }
 
   /// 탭 카운트 리셋

@@ -435,9 +435,8 @@ class _RankingScreenState extends State<RankingScreen> {
   String _formatDate(String dateString) {
     try {
       final date = DateTime.parse(dateString);
-      // 한국 시간대로 변환 (UTC+9)
-      final koreaTime = date.toUtc().add(const Duration(hours: 9));
-      return '${koreaTime.month}월 ${koreaTime.day}일 ${koreaTime.hour.toString().padLeft(2, '0')}:${koreaTime.minute.toString().padLeft(2, '0')}:${koreaTime.second.toString().padLeft(2, '0')}';
+      // 로컬 시간 그대로 사용 (이미 한국 시간으로 저장됨)
+      return '${date.month}월 ${date.day}일 ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateString;
     }
