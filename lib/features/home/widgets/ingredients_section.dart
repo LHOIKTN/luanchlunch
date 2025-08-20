@@ -89,17 +89,17 @@ class IngredientsSection extends StatelessWidget {
                 ),
               ],
             ),
-                          child: const Text(
-                '아직 획득한 재료가 없습니다.\n조합 탭에서 재료를 획득해보세요!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.secondaryDark,
-                  fontStyle: FontStyle.italic,
-                ),
+            child: const Text(
+              '획득 가능한 재료가 없습니다.',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.secondaryDark,
+                fontStyle: FontStyle.italic,
               ),
+            ),
           ),
         ],
       ],
     );
   }
-} 
+}

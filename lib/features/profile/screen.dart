@@ -277,10 +277,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.restore, color: Colors.red),
+                          const Icon(Icons.build, color: Colors.red),
                           const SizedBox(width: 8),
                           const Text(
-                            '앱 초기화',
+                            '개발자 도구',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -304,6 +304,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // 개발자 모드 해제 버튼
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _disableDeveloperMode,
+                          icon: const Icon(Icons.toggle_off, size: 20),
+                          label: const Text('개발자 모드 해제'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
                       // 앱 초기화 버튼
                       SizedBox(
@@ -369,7 +388,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _resetApp() async {
     final confirmed = await _showResetConfirmDialog();
 
-    if (confirmed) {
+    if (confirmed == true) {
       // 삭제 진행 상태를 보여주는 모달 다이얼로그 표시
       await _showDeletionProgressDialog();
     }
@@ -608,5 +627,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ) ??
         false;
+  }
+
+  // 개발자 모드 해제
+  void _disableDeveloperMode() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red),
+              SizedBox(width: 8),
+              Text('개발자 모드 해제'),
+            ],
+          ),
+          content: const Text(
+            '개발자 모드를 해제하면 모든 개발자 모드 기능이 비활성화됩니다.\n\n'
+            '정말로 해제하시겠습니까?',
+            style: TextStyle(height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+                backgroundColor: Colors.red.withOpacity(0.1),
+              ),
+              child: const Text(
+                '해제 실행',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await DeveloperMode.disable();
+        _loadDeveloperModeStatus();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('개발자 모드가 해제되었습니다.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        print('❌ 개발자 모드 해제 실패: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('개발자 모드 해제에 실패했습니다: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }

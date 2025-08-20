@@ -57,7 +57,28 @@ class _IngredientAcquisitionCardState extends State<IngredientAcquisitionCard> {
 
   /// 획득 버튼 활성화 여부
   bool _isAcquireButtonEnabled() {
+    // 이미 획득했으면 비활성화
+    if (widget.meal.isAcquired) {
+      return false;
+    }
+
+    // 획득 가능한 재료가 없으면 비활성화
+    if (widget.availableFoods.isEmpty) {
+      return false;
+    }
+
+    // 날짜 제한 확인
     return _isTodayMeal();
+  }
+
+  String _getButtonText() {
+    if (widget.availableFoods.isEmpty) {
+      return '재료가 없습니다.';
+    }
+    if (!_isTodayMeal()) {
+      return '오늘 날짜가 아닙니다';
+    }
+    return '재료 얻기';
   }
 
   @override
@@ -153,7 +174,7 @@ class _IngredientAcquisitionCardState extends State<IngredientAcquisitionCard> {
                   ),
                 ),
                 child: Text(
-                  isButtonEnabled ? '재료 얻기' : '오늘 날짜가 아닙니다',
+                  _getButtonText(),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
