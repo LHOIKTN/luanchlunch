@@ -251,7 +251,7 @@ class HiveHelper {
 
     // 기본 재료들의 이름으로 ID 찾기
     final allFoods = getAllFoods();
-    final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕', '육수'];
+    final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕'];
     final now = DateTime.now();
     final List<Map<String, dynamic>> grantedIngredients = [];
 

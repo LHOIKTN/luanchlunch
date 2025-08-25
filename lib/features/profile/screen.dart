@@ -131,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,6 +324,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
 
+                      // 모든 재료 획득 버튼
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _acquireAllIngredients,
+                          icon: const Icon(Icons.inventory, size: 20),
+                          label: const Text('모든 재료 획득'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
                       // 앱 초기화 버튼
                       SizedBox(
                         width: double.infinity,
@@ -377,6 +396,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ],
+
+              // 하단 네비게이션을 위한 여백
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -689,6 +711,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
             duration: const Duration(seconds: 3),
           ),
         );
+      }
+    }
+  }
+
+  // 모든 재료 획득 (개발자 모드 전용)
+  void _acquireAllIngredients() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.inventory, color: Colors.green),
+              SizedBox(width: 8),
+              Text('모든 재료 획득'),
+            ],
+          ),
+          content: const Text(
+            '모든 음식 재료를 획득 상태로 변경합니다.\n\n'
+            '이 작업은 개발 및 테스트 목적으로만 사용해주세요.\n'
+            '계속하시겠습니까?',
+            style: TextStyle(height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green,
+                backgroundColor: Colors.green.withOpacity(0.1),
+              ),
+              child: const Text(
+                '모든 재료 획득',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        // 모든 음식 데이터 가져오기
+        final allFoods = HiveHelper.instance.getAllFoods();
+        final now = DateTime.now();
+        int acquiredCount = 0;
+
+        // 아직 획득하지 않은 재료들을 모두 획득 상태로 변경
+        for (final food in allFoods) {
+          if (food.acquiredAt == null) {
+            await HiveHelper.instance.updateFoodAcquiredAt(food.id, now);
+            acquiredCount++;
+          }
+        }
+
+        // Supabase에도 동기화 시도
+        final userUUID = HiveHelper.instance.getUserUUID();
+        if (userUUID != null && acquiredCount > 0) {
+          try {
+            // 새로 획득한 재료들의 데이터 준비
+            final newlyAcquiredItems = <Map<String, dynamic>>[];
+            for (final food in allFoods) {
+              if (food.acquiredAt != null &&
+                  food.acquiredAt!
+                      .isAfter(now.subtract(const Duration(seconds: 1)))) {
+                newlyAcquiredItems.add({
+                  'user_uuid': userUUID,
+                  'food_id': food.id,
+                  'acquired_at': now.toIso8601String(),
+                });
+              }
+            }
+
+            if (newlyAcquiredItems.isNotEmpty) {
+              final api = SupabaseApi();
+              await api.insertInventory(newlyAcquiredItems);
+              print('✅ Supabase 동기화 완료: ${newlyAcquiredItems.length}개');
+            }
+          } catch (e) {
+            print('⚠️ Supabase 동기화 실패: $e (로컬 저장은 완료됨)');
+          }
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('모든 재료 획득 완료! (${acquiredCount}개 새로 획득)'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        print('❌ 모든 재료 획득 실패: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('모든 재료 획득 실패: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     }
   }

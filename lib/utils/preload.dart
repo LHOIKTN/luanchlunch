@@ -589,7 +589,7 @@ class PreloadData {
     try {
       // 현재 획득한 재료들 확인
       final acquiredFoods = HiveHelper.instance.getAcquiredFoods();
-      final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕', '육수'];
+      final basicIngredientNames = ['쌀', '밀', '깨', '소금', '설탕'];
 
       // 기본 재료 중 획득하지 않은 것들 찾기
       final missingBasicIngredients = <String>[];
