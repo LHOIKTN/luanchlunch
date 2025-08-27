@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:launchlunch/models/food.dart';
 import 'package:launchlunch/theme/app_colors.dart';
+import 'package:launchlunch/utils/device_helper.dart';
 import 'dart:io';
 
 // CompleteOverlay를 StatefulWidget으로 변경
@@ -25,10 +26,12 @@ class CompleteOverlay extends StatefulWidget {
 class _CompleteOverlayState extends State<CompleteOverlay> {
   @override
   Widget build(BuildContext context) {
-    final recipeFoods = widget.food.recipes?.map((id) => 
-      widget.allFoods.firstWhere((f) => f.id == id, orElse: () => widget.allFoods.first)
-    ).toList() ?? [];
-    
+    final recipeFoods = widget.food.recipes
+            ?.map((id) => widget.allFoods.firstWhere((f) => f.id == id,
+                orElse: () => widget.allFoods.first))
+            .toList() ??
+        [];
+
     return GestureDetector(
       onTap: widget.onClose,
       onLongPress: widget.onLongPress,
@@ -45,10 +48,9 @@ class _CompleteOverlayState extends State<CompleteOverlay> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5)
-                  )
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5))
                 ],
               ),
               child: Column(
@@ -56,85 +58,150 @@ class _CompleteOverlayState extends State<CompleteOverlay> {
                 children: [
                   // 완성 배지
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: DeviceHelper.isTablet(context) ? 24.0 : 20.0,
+                      vertical: DeviceHelper.isTablet(context) ? 12.0 : 8.0,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       '🎉 조합 완성!',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: DeviceHelper.isTablet(context) ? 20.0 : 16.0,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
+                  SizedBox(
+                      height: DeviceHelper.isTablet(context) ? 32.0 : 24.0),
+
                   // 음식 이미지
                   widget.food.imageUrl.startsWith('assets/')
-                      ? Image.asset(widget.food.imageUrl, width: 100, height: 100, fit: BoxFit.contain)
-                      : Image.file(File(widget.food.imageUrl), width: 100, height: 100, fit: BoxFit.contain),
-                  const SizedBox(height: 16),
-                  
+                      ? Image.asset(widget.food.imageUrl,
+                          width: DeviceHelper.isTablet(context) ? 120.0 : 80.0,
+                          height: DeviceHelper.isTablet(context) ? 120.0 : 80.0,
+                          fit: BoxFit.contain)
+                      : Image.file(File(widget.food.imageUrl),
+                          width: DeviceHelper.isTablet(context) ? 120.0 : 80.0,
+                          height: DeviceHelper.isTablet(context) ? 120.0 : 80.0,
+                          fit: BoxFit.contain),
+                  SizedBox(
+                      height: DeviceHelper.isTablet(context) ? 20.0 : 16.0),
+
                   // 음식 이름
                   Text(
                     widget.food.name,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: DeviceHelper.isTablet(context) ? 28.0 : 20.0,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.secondaryDark,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
-                  
+                  SizedBox(
+                      height: DeviceHelper.isTablet(context) ? 16.0 : 12.0),
+
                   // 음식 설명
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 300),
+                    constraints: BoxConstraints(
+                      maxWidth: DeviceHelper.isTablet(context) ? 400.0 : 300.0,
+                    ),
                     child: Text(
-                      widget.food.detail ?? '${widget.food.name}에 대한 설명입니다. 다양한 요리에 활용할 수 있는 재료입니다.',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      widget.food.detail ??
+                          '${widget.food.name}에 대한 설명입니다. 다양한 요리에 활용할 수 있는 재료입니다.',
+                      style: TextStyle(
+                        fontSize: DeviceHelper.isTablet(context) ? 18.0 : 14.0,
+                        color: AppColors.secondaryDark,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  
+
                   // 레시피 정보 (재료들)
                   if (recipeFoods.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    const Text(
+                    SizedBox(
+                        height: DeviceHelper.isTablet(context) ? 28.0 : 20.0),
+                    Text(
                       '레시피',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: DeviceHelper.isTablet(context) ? 20.0 : 16.0,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.secondaryDark,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      children: recipeFoods.map((f) => Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            f.imageUrl.startsWith('assets/')
-                                ? Image.asset(f.imageUrl, width: 32, height: 32)
-                                : Image.file(File(f.imageUrl), width: 32, height: 32),
-                            const SizedBox(height: 4),
-                            Text(
-                              f.name,
-                              style: const TextStyle(fontSize: 10),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )).toList(),
+                    SizedBox(
+                        height: DeviceHelper.isTablet(context) ? 16.0 : 8.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: recipeFoods
+                          .map((f) => GestureDetector(
+                                onTap: () {}, // 조합 완성 시에는 재료 탭 비활성화
+                                child: Container(
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: DeviceHelper.isTablet(context)
+                                        ? 12.0
+                                        : 8.0,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      f.imageUrl.startsWith('assets/')
+                                          ? Image.asset(
+                                              f.imageUrl,
+                                              width:
+                                                  DeviceHelper.isTablet(context)
+                                                      ? 48.0
+                                                      : 40.0,
+                                              height:
+                                                  DeviceHelper.isTablet(context)
+                                                      ? 48.0
+                                                      : 40.0,
+                                            )
+                                          : Image.file(
+                                              File(f.imageUrl),
+                                              width:
+                                                  DeviceHelper.isTablet(context)
+                                                      ? 48.0
+                                                      : 40.0,
+                                              height:
+                                                  DeviceHelper.isTablet(context)
+                                                      ? 48.0
+                                                      : 40.0,
+                                            ),
+                                      SizedBox(
+                                          height: DeviceHelper.isTablet(context)
+                                              ? 6.0
+                                              : 4.0),
+                                      Text(
+                                        f.name,
+                                        style: TextStyle(
+                                          fontSize:
+                                              DeviceHelper.isTablet(context)
+                                                  ? 14.0
+                                                  : 12.0,
+                                          color: AppColors.secondaryDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ],
-                  
-                  const SizedBox(height: 24),
-                  const Text(
-                    '탭하여 계속',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+
+                  SizedBox(
+                      height: DeviceHelper.isTablet(context) ? 32.0 : 16.0),
+                  TextButton(
+                    onPressed: widget.onClose,
+                    child: Text(
+                      '닫기',
+                      style: TextStyle(
+                        fontSize: DeviceHelper.isTablet(context) ? 18.0 : 16.0,
+                      ),
+                    ),
                   ),
                 ],
               ),

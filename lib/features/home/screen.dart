@@ -8,6 +8,7 @@ import 'package:launchlunch/features/home/widgets/menu_list_card.dart';
 import 'package:launchlunch/features/home/widgets/ingredients_section.dart';
 import 'package:launchlunch/features/home/widgets/ingredient_acquisition_card.dart';
 import 'package:launchlunch/utils/developer_mode.dart';
+import 'package:launchlunch/utils/device_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +17,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
@@ -27,27 +28,64 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // 앱이 포그라운드로 돌아올 때만 데이터 새로고침
+      print('🔄 앱이 포그라운드로 돌아옴 - 전체 데이터 새로고침 트리거');
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textHint,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: '조합'),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: '랭킹'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: '내 정보'),
-        ],
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            selectedLabelStyle: TextStyle(
+              fontSize: DeviceHelper.getScaledFontSize(context, 12.0),
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontSize: DeviceHelper.getScaledFontSize(context, 12.0),
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textHint,
+          iconSize: DeviceHelper.getScaledIconSize(context, 24.0),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory), label: '조합'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.emoji_events), label: '랭킹'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: '내 정보'),
+          ],
+        ),
       ),
     );
   }
 }
 
-// 홈 탭
 class _HomeTab extends StatefulWidget {
   const _HomeTab();
 
@@ -56,13 +94,6 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 홈 탭이 활성화될 때마다 데이터 새로고침
-    print('🔄 홈 탭 활성화 - 데이터 새로고침');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,7 +112,8 @@ class _DailyMenuPage extends StatefulWidget {
   State<_DailyMenuPage> createState() => _DailyMenuPageState();
 }
 
-class _DailyMenuPageState extends State<_DailyMenuPage> {
+class _DailyMenuPageState extends State<_DailyMenuPage>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   late PageController _pageController;
   late HomeController _controller;
@@ -90,6 +122,7 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = HomeController();
     _initializeData();
     _loadDeveloperModeStatus();
@@ -97,17 +130,29 @@ class _DailyMenuPageState extends State<_DailyMenuPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 화면이 다시 활성화될 때마다 데이터 새로고침
-    print('🔄 DailyMenuPage 활성화 - 데이터 새로고침');
-    _loadMealData();
-    _loadDeveloperModeStatus();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // 앱이 포그라운드로 돌아올 때만 데이터 새로고침
+      print('🔄 앱이 포그라운드로 돌아옴 - 홈 데이터 새로고침');
+      _refreshDataIfNeeded();
+      _loadDeveloperModeStatus();
+    }
+  }
+
+  /// 필요한 경우에만 데이터를 새로고침
+  void _refreshDataIfNeeded() async {
+    // 이미 로딩 중이면 중복 실행 방지
+    if (_isLoading) return;
+
+    print('🔄 데이터 새로고침 확인...');
+    await _loadMealData();
   }
 
   void _loadDeveloperModeStatus() async {

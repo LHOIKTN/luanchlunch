@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:launchlunch/features/game_start/screen.dart';
 import 'package:launchlunch/utils/preload.dart';
+import 'package:launchlunch/utils/image_validator.dart';
 import 'package:launchlunch/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -74,6 +75,12 @@ class _SplashScreenState extends State<SplashScreen>
       print('🚀 preloadAllData() 호출 시작...');
       await preloader.preloadAllData();
       print('✅ preloadAllData() 완료!');
+
+      // 이미지 유효성 검사 및 복구
+      print('🔍 이미지 유효성 검사 시작...');
+      final imageValidator = ImageValidator();
+      await imageValidator.validateAndRepairImages();
+      print('✅ 이미지 유효성 검사 완료!');
 
       // 프리로드 완료 후 게임 시작 화면으로 이동
       if (mounted) {

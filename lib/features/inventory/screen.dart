@@ -8,6 +8,7 @@ import 'package:launchlunch/features/inventory/combination_box.dart';
 import 'package:launchlunch/theme/app_colors.dart';
 import 'package:launchlunch/utils/date_helper.dart';
 import 'package:launchlunch/utils/developer_mode.dart';
+import 'package:launchlunch/utils/device_helper.dart';
 import 'package:launchlunch/data/hive/hive_helper.dart';
 
 class FoodGridScreen extends StatefulWidget {
@@ -17,7 +18,8 @@ class FoodGridScreen extends StatefulWidget {
   State<FoodGridScreen> createState() => _FoodGridScreenState();
 }
 
-class _FoodGridScreenState extends State<FoodGridScreen> {
+class _FoodGridScreenState extends State<FoodGridScreen>
+    with WidgetsBindingObserver {
   List<Food> selectedFoods = [];
   List<Food> availableFoods = []; // 로컬 상태로 관리
   Food? resultFood;
@@ -31,16 +33,35 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadFoodsFromHive();
     _loadDeveloperModeStatus();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 화면이 다시 활성화될 때마다 데이터 새로고침
-    _loadFoodsFromHive();
-    _loadDeveloperModeStatus();
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // 앱이 포그라운드로 돌아올 때만 데이터 새로고침
+      print('🔄 앱이 포그라운드로 돌아옴 - 인벤토리 데이터 새로고침');
+      _refreshDataIfNeeded();
+      _loadDeveloperModeStatus();
+    }
+  }
+
+  /// 필요한 경우에만 데이터를 새로고침
+  void _refreshDataIfNeeded() async {
+    // 이미 로딩 중이면 중복 실행 방지
+    if (isLoading) return;
+
+    print('🔄 인벤토리 데이터 새로고침 확인...');
+    await _loadFoodsFromHive();
   }
 
   void _loadDeveloperModeStatus() async {
@@ -191,17 +212,17 @@ class _FoodGridScreenState extends State<FoodGridScreen> {
     // 디바이스 타입과 방향에 따른 그리드 설정 조정
     int crossAxisCount;
     if (isTablet) {
-      crossAxisCount = isLandscape ? 8 : 6; // 태블릿: 가로 8개, 세로 6개
+      crossAxisCount = isLandscape ? 6 : 4; // 태블릿: 가로 6개, 세로 4개 (더 적게 배치)
     } else {
       crossAxisCount = 4; // 모바일: 항상 4개
     }
 
-    final childAspectRatio = isTablet ? 0.8 : 0.6;
+    final childAspectRatio = isTablet ? 0.7 : 0.6; // 태블릿에서 더 세로로 긴 비율
     final horizontalPadding = isTablet ? 24.0 : 16.0;
     final verticalPadding = isTablet ? 24.0 : 16.0;
     final fontSize = isTablet ? 20.0 : 18.0;
-    final spacing = isTablet ? 12.0 : 8.0;
-    final crossSpacing = isTablet ? 16.0 : 12.0;
+    final spacing = isTablet ? 16.0 : 8.0; // 태블릿에서 간격 늘림
+    final crossSpacing = isTablet ? 20.0 : 12.0; // 태블릿에서 간격 늘림
 
     return Scaffold(
       backgroundColor: AppColors.background,

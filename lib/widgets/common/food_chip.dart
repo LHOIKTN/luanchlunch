@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../../models/food.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/device_helper.dart';
 
 class FoodChip extends StatelessWidget {
   final Food food;
@@ -13,16 +15,19 @@ class FoodChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAcquired = food.acquiredAt != null;
-    
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: DeviceHelper.isTablet(context) ? 16.0 : 12.0,
+        vertical: DeviceHelper.isTablet(context) ? 8.0 : 6.0,
+      ),
       decoration: BoxDecoration(
-        color: isAcquired 
+        color: isAcquired
             ? AppColors.success.withOpacity(0.2)
             : AppColors.success.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isAcquired 
+          color: isAcquired
               ? AppColors.success
               : AppColors.success.withOpacity(0.3),
           width: isAcquired ? 2 : 1,
@@ -31,43 +36,75 @@ class FoodChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (food.imageUrl.isNotEmpty && food.imageUrl.startsWith('assets/'))
-            Image.asset(
-              food.imageUrl,
-              width: 16,
-              height: 16,
-              errorBuilder: (context, error, stackTrace) => Icon(
+          Builder(
+            builder: (context) {
+              // 태블릿용 크기 조정
+              final iconSize = DeviceHelper.isTablet(context) ? 24.0 : 16.0;
+
+              if (food.imageUrl.isNotEmpty) {
+                if (food.imageUrl.startsWith('assets/')) {
+                  // Assets 이미지
+                  return Image.asset(
+                    food.imageUrl,
+                    width: iconSize,
+                    height: iconSize,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('❌ FoodChip Assets 이미지 로드 실패: ${food.imageUrl}');
+                      return Icon(
+                        Icons.fastfood,
+                        size: iconSize,
+                        color: isAcquired
+                            ? AppColors.success
+                            : AppColors.success.withOpacity(0.7),
+                      );
+                    },
+                  );
+                } else if (food.imageUrl.startsWith('/')) {
+                  // 로컬 파일 이미지
+                  return Image.file(
+                    File(food.imageUrl),
+                    width: iconSize,
+                    height: iconSize,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('❌ FoodChip 로컬 파일 이미지 로드 실패: ${food.imageUrl}');
+                      return Icon(
+                        Icons.fastfood,
+                        size: iconSize,
+                        color: isAcquired
+                            ? AppColors.success
+                            : AppColors.success.withOpacity(0.7),
+                      );
+                    },
+                  );
+                }
+              }
+
+              // 기본 아이콘 (이미지가 없거나 로드 실패 시)
+              return Icon(
                 Icons.fastfood,
-                size: 16,
-                color: isAcquired 
+                size: iconSize,
+                color: isAcquired
                     ? AppColors.success
                     : AppColors.success.withOpacity(0.7),
-              ),
-            )
-          else
-            Icon(
-              Icons.fastfood,
-              size: 16,
-              color: isAcquired 
-                  ? AppColors.success
-                  : AppColors.success.withOpacity(0.7),
-            ),
-          const SizedBox(width: 6),
+              );
+            },
+          ),
+          SizedBox(width: DeviceHelper.isTablet(context) ? 8.0 : 6.0),
           Text(
             food.name,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: DeviceHelper.isTablet(context) ? 16.0 : 12.0,
               fontWeight: isAcquired ? FontWeight.bold : FontWeight.w500,
-              color: isAcquired 
+              color: isAcquired
                   ? AppColors.success
                   : AppColors.success.withOpacity(0.7),
             ),
           ),
           if (isAcquired) ...[
-            const SizedBox(width: 4),
+            SizedBox(width: DeviceHelper.isTablet(context) ? 6.0 : 4.0),
             Icon(
               Icons.check_circle,
-              size: 12,
+              size: DeviceHelper.isTablet(context) ? 16.0 : 12.0,
               color: AppColors.success,
             ),
           ],
